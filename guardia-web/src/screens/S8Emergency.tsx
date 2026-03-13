@@ -1,10 +1,11 @@
 import PhoneFrame from "../components/layout/PhoneFrame";
+import MelbourneTime from "../components/layout/MelbourneTime";
 
 export default function S8Emergency() {
   return (
     <PhoneFrame>
       <div className="status-bar">
-        <span className="status-time">9:41</span>
+        <MelbourneTime className="status-time" />
         <div className="status-icons">
           <div className="signal-bars"><span /><span /><span /></div>
           <span className="wifi-icon">▲</span>

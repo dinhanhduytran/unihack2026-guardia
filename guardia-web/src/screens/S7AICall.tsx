@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
+import MelbourneTime from "../components/layout/MelbourneTime";
 
 export default function S7AICall() {
   return (
     <PhoneFrame dark>
       <div className="call-status-bar">
-        <span className="status-time" style={{ color: "rgba(255,255,255,0.8)" }}>9:41</span>
+        <MelbourneTime className="status-time" style={{ color: "rgba(255,255,255,0.8)" }} />
         <div className="status-icons">
           <div className="signal-bars">
             <span style={{ background: "rgba(255,255,255,0.6)" }} />

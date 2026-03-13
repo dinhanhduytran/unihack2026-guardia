@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
 import PlaceSearchInput from "../components/location/PlaceSearchInput";
+import MelbourneTime from "../components/layout/MelbourneTime";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { setOrigin } from "../store/locationSlice";
 import { useEffect, useMemo, useState } from "react";
@@ -281,7 +282,7 @@ export default function S4MapPreJourney() {
   return (
     <PhoneFrame withNav>
       <div className="status-bar">
-        <span className="status-time">9:41</span>
+        <MelbourneTime className="status-time" />
         <div className="status-icons">
           <div className="signal-bars">
             <span />

@@ -8,6 +8,7 @@ import Map, {
   type LayerProps,
 } from "react-map-gl/mapbox";
 import PhoneFrame from "../components/layout/PhoneFrame";
+import MelbourneTime from "../components/layout/MelbourneTime";
 import "mapbox-gl/dist/mapbox-gl.css";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
@@ -202,7 +203,7 @@ export default function S5JourneyActive() {
   return (
     <PhoneFrame withNav>
       <div className="status-bar">
-        <span className="status-time">9:41</span>
+        <MelbourneTime className="status-time" />
         <div className="status-icons">
           <div className="signal-bars">
             <span />

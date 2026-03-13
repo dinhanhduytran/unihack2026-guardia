@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
+import MelbourneTime from "../components/layout/MelbourneTime";
 
 export default function S0Welcome() {
   return (
     <PhoneFrame>
       <div className="status-bar">
-        <span className="status-time">9:41</span>
+        <MelbourneTime className="status-time" />
         <div className="status-icons">
           <div className="signal-bars">
             <span />
