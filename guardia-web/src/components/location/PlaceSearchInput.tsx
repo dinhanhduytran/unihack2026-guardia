@@ -1,10 +1,4 @@
-import { useEffect, useMemo } from "react";
-import {
-  getGeocode,
-  getLatLng,
-  type Suggestion,
-  default as usePlacesAutocomplete,
-} from "use-places-autocomplete";
+import { useEffect, useMemo, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import {
   setDestination,
@@ -18,33 +12,24 @@ type Props = {
   className: string;
   iconLeft?: string;
   iconRight?: string;
+  onLocationSelected?: (location: SavedLocation) => void;
 };
 
-const GOOGLE_SCRIPT_ID = "guardia-google-maps-places-script";
-type GoogleWindow = Window & { google?: { maps?: { places?: unknown } } };
+const SEARCH_DEBOUNCE_MS = 300;
+const MIN_QUERY_LENGTH = 2;
+const MELBOURNE_PROXIMITY = "144.9631,-37.8136";
+const MAPBOX_API_BASE = "https://api.mapbox.com/geocoding/v5/mapbox.places";
+const MAPBOX_RESULT_LIMIT = 6;
 
-function loadGoogleMapsScript(apiKey: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const existing = document.getElementById(GOOGLE_SCRIPT_ID) as HTMLScriptElement | null;
-    if (existing) {
-      if ((window as GoogleWindow).google?.maps?.places) {
-        resolve();
-      } else {
-        existing.addEventListener("load", () => resolve());
-      }
-      return;
-    }
+type MapboxFeature = {
+  id: string;
+  place_name: string;
+  center?: [number, number];
+};
 
-    const script = document.createElement("script");
-    script.id = GOOGLE_SCRIPT_ID;
-    script.async = true;
-    script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Google Maps script"));
-    document.body.appendChild(script);
-  });
-}
+type MapboxForwardResponse = {
+  features?: MapboxFeature[];
+};
 
 export default function PlaceSearchInput({
   kind,
@@ -52,49 +37,93 @@ export default function PlaceSearchInput({
   className,
   iconLeft = "📍",
   iconRight = "🔍",
+  onLocationSelected,
 }: Props) {
   const dispatch = useAppDispatch();
   const origin = useAppSelector((state) => state.location.origin);
   const destination = useAppSelector((state) => state.location.destination);
   const selected = kind === "origin" ? origin : destination;
+  const [value, setValue] = useState(selected?.address ?? "");
+  const [results, setResults] = useState<MapboxFeature[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
-  const hasApiKey = apiKey.trim().length > 0;
-
-  const {
-    ready,
-    value,
-    setValue,
-    clearSuggestions,
-    suggestions: { status, data },
-    init,
-  } = usePlacesAutocomplete({
-    debounce: 250,
-    initOnMount: false,
-    requestOptions: {
-      componentRestrictions: { country: "au" },
-    },
-  });
+  const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
+  const hasToken = mapboxToken.trim().length > 0;
 
   useEffect(() => {
-    if (selected?.address && selected.address !== value) {
-      setValue(selected.address, false);
-    }
-  }, [selected?.address, setValue, value]);
+    setValue(selected?.address ?? "");
+  }, [selected?.address]);
 
   useEffect(() => {
-    if (!hasApiKey) {
+    const query = value.trim();
+    if (query.length < MIN_QUERY_LENGTH) {
+      setResults([]);
+      setLoading(false);
+      setError(null);
       return;
     }
 
-    loadGoogleMapsScript(apiKey)
-      .then(() => init())
-      .catch(() => {
-        // noop: UI still usable for manual typing fallback
-      });
-  }, [apiKey, hasApiKey, init]);
+    if (!hasToken) {
+      setResults([]);
+      setLoading(false);
+      setError("Map search unavailable.");
+      return;
+    }
 
-  const suggestions = useMemo(() => (status === "OK" ? data : []), [status, data]);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        try {
+          setLoading(true);
+          setError(null);
+
+          const endpoint = `${MAPBOX_API_BASE}/${encodeURIComponent(query)}.json`;
+          const response = await fetch(
+            `${endpoint}?access_token=${encodeURIComponent(mapboxToken)}&autocomplete=true&country=au&proximity=${encodeURIComponent(MELBOURNE_PROXIMITY)}&limit=${MAPBOX_RESULT_LIMIT}`,
+            { signal: controller.signal },
+          );
+
+          if (!response.ok) {
+            throw new Error(`Mapbox geocode failed: ${response.status}`);
+          }
+
+          const payload = (await response.json()) as MapboxForwardResponse;
+          setResults(payload.features ?? []);
+        } catch (fetchError) {
+          if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
+            return;
+          }
+          setResults([]);
+          setError("Unable to fetch places right now.");
+        } finally {
+          setLoading(false);
+        }
+      })();
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [hasToken, mapboxToken, value]);
+
+  const suggestions = useMemo(
+    () =>
+      results.map((item) => ({
+        address: item.place_name,
+        lat: item.center?.[1] ?? null,
+        long: item.center?.[0] ?? null,
+        placeId: item.id,
+      })),
+    [results],
+  );
+  const queryLength = value.trim().length;
+  const shouldShowNoResults =
+    hasToken && queryLength >= MIN_QUERY_LENGTH && !loading && !error && suggestions.length === 0;
+  const showDropdown =
+    queryLength >= MIN_QUERY_LENGTH &&
+    (loading || error != null || suggestions.length > 0 || shouldShowNoResults);
 
   const saveLocation = (location: SavedLocation | null) => {
     if (kind === "origin") {
@@ -104,29 +133,19 @@ export default function PlaceSearchInput({
     dispatch(setDestination(location));
   };
 
-  const handleSelect = async (suggestion: Suggestion) => {
-    setValue(suggestion.description, false);
-    clearSuggestions();
+  const handleSelect = (suggestion: (typeof suggestions)[number]) => {
+    setValue(suggestion.address);
+    setResults([]);
+    setError(null);
 
-    try {
-      const geocode = await getGeocode({ placeId: suggestion.place_id });
-      const result = geocode[0];
-      const { lat, lng } = await getLatLng(result);
-
-      saveLocation({
-        address: suggestion.description,
-        lat,
-        long: lng,
-        placeId: suggestion.place_id,
-      });
-    } catch {
-      saveLocation({
-        address: suggestion.description,
-        lat: null,
-        long: null,
-        placeId: suggestion.place_id,
-      });
-    }
+    const nextLocation: SavedLocation = {
+      address: suggestion.address,
+      lat: suggestion.lat,
+      long: suggestion.long,
+      placeId: suggestion.placeId,
+    };
+    saveLocation(nextLocation);
+    onLocationSelected?.(nextLocation);
   };
 
   const saveManualInput = () => {
@@ -158,8 +177,9 @@ export default function PlaceSearchInput({
           placeId: null,
         };
         saveLocation(nextValue);
-        setValue(nextValue.address, false);
-        clearSuggestions();
+        setValue(nextValue.address);
+        setResults([]);
+        setError(null);
       },
       () => {
         // no-op: user may deny permission
@@ -175,9 +195,10 @@ export default function PlaceSearchInput({
           className="places-input"
           placeholder={placeholder}
           value={value}
-          onChange={(event) => setValue(event.target.value)}
+          onChange={(event) => {
+            setValue(event.target.value);
+          }}
           onBlur={saveManualInput}
-          disabled={!hasApiKey && !ready}
         />
         <span style={{ fontSize: 16, color: "var(--text-muted)" }}>{iconRight}</span>
       </div>
@@ -186,17 +207,24 @@ export default function PlaceSearchInput({
           Use current location
         </button>
       ) : null}
-      {suggestions.length > 0 ? (
+      {showDropdown ? (
         <div className="places-dropdown">
+          {loading ? <div className="places-option places-option-status">Searching...</div> : null}
+          {!loading && error ? (
+            <div className="places-option places-option-status">{error}</div>
+          ) : null}
+          {!loading && !error && shouldShowNoResults ? (
+            <div className="places-option places-option-status">No places found.</div>
+          ) : null}
           {suggestions.map((item) => (
             <button
-              key={item.place_id}
+              key={item.placeId}
               className="places-option"
               type="button"
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => void handleSelect(item)}
+              onClick={() => handleSelect(item)}
             >
-              {item.description}
+              {item.address}
             </button>
           ))}
         </div>

@@ -129,6 +129,10 @@ body { margin: 0; font-family: "Nunito", sans-serif; background: var(--bg); }
   cursor: pointer;
 }
 .places-option:last-child { border-bottom: none; }
+.places-option-status {
+  color: var(--text-muted);
+  cursor: default;
+}
 .use-current-btn {
   margin: 4px 20px 10px;
   font-size: 12px;

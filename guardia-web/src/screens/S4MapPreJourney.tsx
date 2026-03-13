@@ -25,56 +25,17 @@ type BackendRoute = {
   routes: [number, number][];
 };
 
-const MOCK_BACKEND_ROUTES: BackendRoute[] = [
-  {
-    id: "r1",
-    label: "Via Collins St",
-    distance_km: 1.1,
-    eta_minutes: 14,
-    safety_score: 87,
-    total_risk: 2.15,
-    crime_count: 2,
-    route_events: [],
-    recommended: true,
-    routes: [
-      [144.9632, -37.8083],
-      [144.9642, -37.8072],
-      [144.966, -37.8058],
-    ],
-  },
-  {
-    id: "r2",
-    label: "Via Flinders Ln",
-    distance_km: 0.9,
-    eta_minutes: 11,
-    safety_score: 52,
-    total_risk: 5.4,
-    crime_count: 4,
-    route_events: [],
-    recommended: false,
-    routes: [
-      [144.9632, -37.8083],
-      [144.9649, -37.8075],
-      [144.966, -37.8058],
-    ],
-  },
-  {
-    id: "r3",
-    label: "Via Swanston St",
-    distance_km: 1.3,
-    eta_minutes: 16,
-    safety_score: 76,
-    total_risk: 3.1,
-    crime_count: 1,
-    route_events: [],
-    recommended: false,
-    routes: [
-      [144.9632, -37.8083],
-      [144.9638, -37.8067],
-      [144.966, -37.8058],
-    ],
-  },
-];
+type DirectionsApiResponse = {
+  routes?: Array<{
+    geometry: {
+      coordinates: [number, number][];
+    };
+    distance: number;
+    duration: number;
+  }>;
+};
+
+const ROUTE_SAFETY_SCORES = [87, 76, 64];
 
 const selectedRouteLayer: LayerProps = {
   id: "selected-route",
@@ -164,10 +125,10 @@ export default function S4MapPreJourney() {
   const origin = useAppSelector((state) => state.location.origin);
   const destination = useAppSelector((state) => state.location.destination);
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
-  const [selectedRouteId, setSelectedRouteId] = useState(
-    MOCK_BACKEND_ROUTES.find((route) => route.recommended)?.id ??
-      MOCK_BACKEND_ROUTES[0].id,
-  );
+  const [routeOptions, setRouteOptions] = useState<BackendRoute[]>([]);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+  const [routesLoading, setRoutesLoading] = useState(false);
+  const [routesError, setRoutesError] = useState<string | null>(null);
 
   useEffect(() => {
     if (origin?.lat != null && origin?.long != null) {
@@ -195,26 +156,107 @@ export default function S4MapPreJourney() {
     );
   }, [dispatch, origin?.lat, origin?.long]);
 
+  useEffect(() => {
+    if (!mapboxToken.trim()) {
+      setRouteOptions([]);
+      setRoutesLoading(false);
+      setRoutesError(null);
+      return;
+    }
+
+    if (
+      origin?.lat == null ||
+      origin?.long == null ||
+      destination?.lat == null ||
+      destination?.long == null
+    ) {
+      setRouteOptions([]);
+      setRoutesLoading(false);
+      setRoutesError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        setRoutesLoading(true);
+        setRoutesError(null);
+
+        const response = await fetch(
+          `https://api.mapbox.com/directions/v5/mapbox/walking/${origin.long},${origin.lat};${destination.long},${destination.lat}?alternatives=true&geometries=geojson&overview=full&steps=false&access_token=${encodeURIComponent(mapboxToken)}`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) {
+          throw new Error(`Directions request failed: ${response.status}`);
+        }
+
+        const payload = (await response.json()) as DirectionsApiResponse;
+        const routes = payload.routes ?? [];
+
+        const mappedRoutes: BackendRoute[] = routes.map((route, index) => {
+          const safetyScore = ROUTE_SAFETY_SCORES[index] ?? Math.max(50, 60 - index * 4);
+          return {
+            id: `route-${index + 1}`,
+            label: index === 0 ? "Recommended route" : `Alternative ${index}`,
+            distance_km: Number((route.distance / 1000).toFixed(1)),
+            eta_minutes: Math.max(1, Math.round(route.duration / 60)),
+            safety_score: safetyScore,
+            total_risk: Number(((100 - safetyScore) / 18).toFixed(2)),
+            crime_count: Math.max(1, index + 1),
+            route_events: [],
+            recommended: index === 0,
+            routes: route.geometry.coordinates.map((coordinate) => [
+              coordinate[0],
+              coordinate[1],
+            ]),
+          };
+        });
+
+        setRouteOptions(mappedRoutes);
+        setSelectedRouteId(mappedRoutes[0]?.id ?? null);
+        if (mappedRoutes.length === 0) {
+          setRoutesError("No walking routes found for this destination.");
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setRouteOptions([]);
+        setSelectedRouteId(null);
+        setRoutesError("Unable to load routes right now.");
+      } finally {
+        setRoutesLoading(false);
+      }
+    })();
+
+    return () => {
+      controller.abort();
+    };
+  }, [destination?.lat, destination?.long, mapboxToken, origin?.lat, origin?.long]);
+
   const selectedRoute = useMemo(
     () =>
-      MOCK_BACKEND_ROUTES.find((route) => route.id === selectedRouteId) ??
-      MOCK_BACKEND_ROUTES[0],
-    [selectedRouteId],
+      routeOptions.find((route) => route.id === selectedRouteId) ??
+      routeOptions[0] ??
+      null,
+    [routeOptions, selectedRouteId],
   );
 
   const selectedRouteGeoJson = useMemo(
     () => ({
       type: "FeatureCollection" as const,
-      features: [
-        {
-          type: "Feature" as const,
-          properties: { id: selectedRoute.id },
-          geometry: {
-            type: "LineString" as const,
-            coordinates: selectedRoute.routes,
-          },
-        },
-      ],
+      features: selectedRoute
+        ? [
+            {
+              type: "Feature" as const,
+              properties: { id: selectedRoute.id },
+              geometry: {
+                type: "LineString" as const,
+                coordinates: selectedRoute.routes,
+              },
+            },
+          ]
+        : [],
     }),
     [selectedRoute],
   );
@@ -222,39 +264,51 @@ export default function S4MapPreJourney() {
   const otherRoutesGeoJson = useMemo(
     () => ({
       type: "FeatureCollection" as const,
-      features: MOCK_BACKEND_ROUTES.filter(
-        (route) => route.id !== selectedRoute.id,
-      ).map((route) => ({
-        type: "Feature" as const,
-        properties: { id: route.id },
-        geometry: {
-          type: "LineString" as const,
-          coordinates: route.routes,
-        },
-      })),
+      features: routeOptions
+        .filter((route) => route.id !== selectedRoute?.id)
+        .map((route) => ({
+          type: "Feature" as const,
+          properties: { id: route.id },
+          geometry: {
+            type: "LineString" as const,
+            coordinates: route.routes,
+          },
+        })),
     }),
-    [selectedRoute.id],
+    [routeOptions, selectedRoute?.id],
   );
 
-  const mapCenter = useMemo(() => {
+  const initialViewState = useMemo(() => {
     if (origin?.lat != null && origin?.long != null) {
       return {
         latitude: origin.lat,
         longitude: origin.long,
+        zoom: 14,
+      };
+    }
+    if (destination?.lat != null && destination?.long != null) {
+      return {
+        latitude: destination.lat,
+        longitude: destination.long,
+        zoom: 14,
       };
     }
     return {
       latitude: -37.8064,
       longitude: 144.9644,
+      zoom: 13,
     };
-  }, [origin]);
+  }, [destination?.lat, destination?.long, origin?.lat, origin?.long]);
 
   const startPoint = useMemo(
-    () => selectedRoute.routes[0] ?? null,
+    () => (selectedRoute ? selectedRoute.routes[0] ?? null : null),
     [selectedRoute],
   );
   const endPoint = useMemo(
-    () => selectedRoute.routes[selectedRoute.routes.length - 1] ?? null,
+    () =>
+      selectedRoute
+        ? selectedRoute.routes[selectedRoute.routes.length - 1] ?? null
+        : null,
     [selectedRoute],
   );
 
@@ -299,24 +353,28 @@ export default function S4MapPreJourney() {
         {mapboxToken ? (
           <Map
             mapboxAccessToken={mapboxToken}
-  
+            initialViewState={initialViewState}
             mapStyle="mapbox://styles/mapbox/light-v11"
             style={{ width: "100%", height: "100%" }}
           >
-            <Source
-              id="other-routes-source"
-              type="geojson"
-              data={otherRoutesGeoJson}
-            >
-              <Layer {...otherRouteLayer} />
-            </Source>
-            <Source
-              id="selected-route-source"
-              type="geojson"
-              data={selectedRouteGeoJson}
-            >
-              <Layer {...selectedRouteLayer} />
-            </Source>
+            {routeOptions.length > 1 ? (
+              <Source
+                id="other-routes-source"
+                type="geojson"
+                data={otherRoutesGeoJson}
+              >
+                <Layer {...otherRouteLayer} />
+              </Source>
+            ) : null}
+            {selectedRoute ? (
+              <Source
+                id="selected-route-source"
+                type="geojson"
+                data={selectedRouteGeoJson}
+              >
+                <Layer {...selectedRouteLayer} />
+              </Source>
+            ) : null}
             <Source
               id="incident-zones-source"
               type="geojson"
@@ -411,8 +469,30 @@ export default function S4MapPreJourney() {
           </div>
           <div className="section-head">Suggested for tonight</div>
           <div className="route-scroll">
-            {MOCK_BACKEND_ROUTES.map((route) => {
-              const isSelected = route.id === selectedRoute.id;
+            {routesLoading ? (
+              <div className="location-state-card">Loading routes...</div>
+            ) : null}
+            {!routesLoading && routesError ? (
+              <div className="location-state-card">{routesError}</div>
+            ) : null}
+            {!routesLoading &&
+            !routesError &&
+            routeOptions.length === 0 &&
+            destination?.address ? (
+              <div className="location-state-card">
+                Select a destination with coordinates to load routes.
+              </div>
+            ) : null}
+            {!routesLoading &&
+            !routesError &&
+            routeOptions.length === 0 &&
+            !destination?.address ? (
+              <div className="location-state-card">
+                Search for a destination on Home to see route options.
+              </div>
+            ) : null}
+            {routeOptions.map((route) => {
+              const isSelected = route.id === selectedRoute?.id;
               const scoreColor =
                 route.safety_score >= 80
                   ? "var(--teal)"
@@ -446,7 +526,9 @@ export default function S4MapPreJourney() {
             })}
           </div>
           <Link to="/journey">
-            <button className="btn-primary">Start Journey →</button>
+            <button className="btn-primary" disabled={!selectedRoute}>
+              Start Journey →
+            </button>
           </Link>
         </div>
       </div>

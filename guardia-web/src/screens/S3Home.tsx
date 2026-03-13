@@ -2,8 +2,10 @@ import PhoneFrame from "../components/layout/PhoneFrame";
 import PlaceSearchInput from "../components/location/PlaceSearchInput";
 import { useAppSelector } from "../store/hooks";
 import MelbourneTime from "../components/layout/MelbourneTime";
+import { useNavigate } from "react-router-dom";
 
 export default function S3Home() {
+  const navigate = useNavigate();
   const origin = useAppSelector((state) => state.location.origin);
   const destination = useAppSelector((state) => state.location.destination);
   const userName = useAppSelector((state) => state.profile.userName);
@@ -31,6 +33,11 @@ export default function S3Home() {
         kind="destination"
         placeholder="Where are you heading?"
         className="search-bar"
+        onLocationSelected={(location) => {
+          if (location.lat != null && location.long != null) {
+            navigate("/map");
+          }
+        }}
       />
       <div className="location-state-card">
         <div><strong>Origin:</strong> {origin?.address ?? "Not set"}</div>
