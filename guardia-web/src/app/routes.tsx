@@ -1,0 +1,23 @@
+import { Navigate, createBrowserRouter } from "react-router-dom";
+import S1Onboarding from "../screens/S1Onboarding";
+import S2Permissions from "../screens/S2Permissions";
+import S3Home from "../screens/S3Home";
+import S4MapPreJourney from "../screens/S4MapPreJourney";
+import S5JourneyActive from "../screens/S5JourneyActive";
+import S6Companion from "../screens/S6Companion";
+import S7AICall from "../screens/S7AICall";
+import S8Emergency from "../screens/S8Emergency";
+import Profile from "../screens/Profile";
+
+export const appRouter = createBrowserRouter([
+  { path: "/", element: <Navigate to="/onboarding" replace /> },
+  { path: "/onboarding", element: <S1Onboarding /> },
+  { path: "/permissions", element: <S2Permissions /> },
+  { path: "/home", element: <S3Home /> },
+  { path: "/map", element: <S4MapPreJourney /> },
+  { path: "/journey", element: <S5JourneyActive /> },
+  { path: "/companion", element: <S6Companion /> },
+  { path: "/ai-call", element: <S7AICall /> },
+  { path: "/emergency", element: <S8Emergency /> },
+  { path: "/profile", element: <Profile /> },
+]);

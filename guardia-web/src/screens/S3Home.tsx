@@ -1,0 +1,72 @@
+import PhoneFrame from "../components/layout/PhoneFrame";
+
+export default function S3Home() {
+  return (
+    <PhoneFrame withNav>
+      <div className="status-bar">
+        <span className="status-time">9:41</span>
+        <div className="status-icons">
+          <div className="signal-bars"><span /><span /><span /></div>
+          <span className="wifi-icon">▲</span>
+          <div className="battery"><div className="battery-fill" /></div>
+        </div>
+      </div>
+      <div className="home-header">
+        <div>
+          <div className="greeting-small">Good evening,</div>
+          <div className="greeting-name">Sarah 👋</div>
+        </div>
+        <div className="avatar-lg">S</div>
+      </div>
+      <div className="search-bar">
+        <span style={{ fontSize: 16 }}>📍</span>
+        <span className="ph">Where are you heading?</span>
+        <span style={{ fontSize: 16, color: "var(--text-muted)" }}>🔍</span>
+      </div>
+      <div className="home-scroll">
+        <div className="section-head">Quick destinations</div>
+        <div className="chips-row">
+          <div className="chip active">🏠 Home</div>
+          <div className="chip">🎓 RMIT</div>
+          <div className="chip">🚇 Flinders St</div>
+          <div className="chip">➕ Add</div>
+        </div>
+        <div className="section-head">Recent routes</div>
+        <div className="route-card">
+          <div className="route-icon">🚶</div>
+          <div className="route-info">
+            <div className="route-name">Home via Collins St</div>
+            <div className="route-meta">1.1 km · 14 min</div>
+          </div>
+          <span className="score score-hi">87</span>
+        </div>
+        <div className="route-card">
+          <div className="route-icon">🎓</div>
+          <div className="route-info">
+            <div className="route-name">RMIT Melbourne City</div>
+            <div className="route-meta">0.9 km · 11 min</div>
+          </div>
+          <span className="score score-med">59</span>
+        </div>
+        <div className="route-card">
+          <div className="route-icon">🚇</div>
+          <div className="route-info">
+            <div className="route-name">Flinders St Station</div>
+            <div className="route-meta">1.3 km · 16 min</div>
+          </div>
+          <span className="score score-hi">76</span>
+        </div>
+        <div className="section-head" style={{ marginTop: 10 }}>Nearby alerts</div>
+        <div className="alert-card">
+          <span style={{ fontSize: 18 }}>⚠️</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+              2 incidents reported within 200m
+            </div>
+            <div className="alert-link">View on map →</div>
+          </div>
+        </div>
+      </div>
+    </PhoneFrame>
+  );
+}

@@ -1,0 +1,17 @@
+:root {
+  --bg: #faf7f5;
+  --surface: #ffffff;
+  --surface-raised: #f3ede8;
+  --coral: #e8735a;
+  --coral-light: #f2a48c;
+  --coral-pale: #fdf0eb;
+  --teal: #3aafa9;
+  --teal-light: #e8f7f6;
+  --amber: #e8a838;
+  --text-primary: #2d1f1a;
+  --text-secondary: #7a6260;
+  --text-muted: #b0958f;
+  --border: rgba(232, 115, 90, 0.12);
+  --border-neutral: #ede5e0;
+  --shadow: rgba(45, 31, 26, 0.08);
+}

@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guardia — All Screens</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400;1,600&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --bg:             #FAF7F5;
+  --surface:        #FFFFFF;
+  --surface-raised: #F3EDE8;
+  --coral:          #E8735A;
+  --coral-light:    #F2A48C;
+  --coral-pale:     #FDF0EB;
+  --teal:           #3AAFA9;
+  --teal-light:     #E8F7F6;
+  --amber:          #E8A838;
+  --text-primary:   #2D1F1A;
+  --text-secondary: #7A6260;
+  --text-muted:     #B0958F;
+  --border:         rgba(232,115,90,0.12);
+  --border-neutral: #EDE5E0;
+  --shadow:         rgba(45,31,26,0.08);
+}
+
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #DDD5CF;
+  font-family: 'Nunito', sans-serif;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 80px;
+  gap: 80px;
+  min-width: max-content;
+  min-height: 100vh;
+}
+
+/* ============================================================
+   FRAME
+   ============================================================ */
+.frame {
+  width: 390px;
+  height: 844px;
+  background: var(--bg);
+  border-radius: 52px;
+  overflow: hidden;
+  position: relative;
+  box-shadow:
+    0 0 0 1px rgba(45,31,26,0.05),
+    0 8px 30px rgba(45,31,26,0.10),
+    0 30px 80px rgba(45,31,26,0.18);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* Phone notch */
+.frame::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120px;
+  height: 36px;
+  background: #1a1210;
+  border-radius: 0 0 20px 20px;
+  z-index: 100;
+}
+.frame-label {
+  position: absolute;
+  bottom: -36px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: 'Nunito', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7A6260;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+@keyframes pulseRing {
+  0%   { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.15; }
+}
+@keyframes wave {
+  0%, 100% { transform: scaleY(0.25); }
+  50%       { transform: scaleY(1); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes breathe {
+  0%, 100% { box-shadow: 0 0 20px rgba(232,115,90,0.2), 0 8px 30px rgba(232,115,90,0.3); }
+  50%       { box-shadow: 0 0 40px rgba(232,115,90,0.35), 0 8px 40px rgba(232,115,90,0.4); }
+}
+@keyframes callPulse {
+  0%   { transform: scale(1); opacity: 0.4; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* ============================================================
+   STATUS BAR
+   ============================================================ */
+.status-bar {
+  height: 52px;
+  padding: 18px 28px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.status-time {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Nunito', sans-serif;
+}
+.status-icons {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.signal-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.signal-bars span {
+  width: 3px;
+  background: var(--text-primary);
+  border-radius: 1px;
+}
+.signal-bars span:nth-child(1) { height: 4px; }
+.signal-bars span:nth-child(2) { height: 7px; }
+.signal-bars span:nth-child(3) { height: 10px; }
+.wifi-icon {
+  font-size: 11px;
+  color: var(--text-primary);
+}
+.battery {
+  width: 24px;
+  height: 12px;
+  border: 1.5px solid var(--text-primary);
+  border-radius: 2.5px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 1.5px;
+}
+.battery::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 6px;
+  background: var(--text-primary);
+  border-radius: 0 1px 1px 0;
+}
+.battery-fill {
+  height: 100%;
+  width: 70%;
+  background: var(--text-primary);
+  border-radius: 1px;
+}
+
+/* ============================================================
+   BOTTOM NAV
+   ============================================================ */
+.bottom-nav {
+  height: 70px;
+  background: var(--surface);
+  border-top: 1px solid var(--border-neutral);
+  box-shadow: 0 -2px 16px rgba(45,31,26,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 4px 6px;
+  flex-shrink: 0;
+}
+.nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 6px 14px;
+  cursor: pointer;
+  min-width: 64px;
+}
+.nav-icon { font-size: 22px; line-height: 1; }
+.nav-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-family: 'Nunito', sans-serif;
+}
+.nav-tab.active .nav-label { color: var(--coral); }
+
+/* ============================================================
+   SHARED COMPONENTS
+   ============================================================ */
+
+/* Buttons */
+.btn-primary {
+  width: 100%;
+  height: 54px;
+  background: linear-gradient(135deg, #E8735A 0%, #F2A48C 100%);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 16px rgba(232,115,90,0.3);
+}
+.btn-ghost {
+  width: 100%;
+  height: 54px;
+  background: transparent;
+  color: var(--coral);
+  border: 1.5px solid var(--coral);
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-ghost-teal {
+  width: 100%;
+  height: 54px;
+  background: transparent;
+  color: var(--teal);
+  border: 1.5px solid var(--teal);
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-sm-coral {
+  height: 36px;
+  padding: 0 14px;
+  background: linear-gradient(135deg, #E8735A, #F2A48C);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Input */
+.input-group { margin-bottom: 12px; }
+.input-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  margin-bottom: 5px;
+  display: block;
+  font-family: 'Nunito', sans-serif;
+}
+.input-field {
+  width: 100%;
+  height: 48px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-neutral);
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 15px;
+  font-family: 'Nunito', sans-serif;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.input-field::placeholder { color: var(--text-muted); }
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+}
+.badge-teal  { background: var(--teal-light); color: var(--teal); }
+.badge-amber { background: #FFF4DC; color: var(--amber); }
+.badge-coral { background: var(--coral-pale); color: var(--coral); }
+
+/* Section heading */
+.section-head {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  margin-bottom: 10px;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* Status dot */
+.dot-status {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-coral  { background: var(--coral); animation: blink 1.2s ease infinite; }
+.dot-green  { background: #3CB371; }
+.dot-amber  { background: var(--amber); animation: blink 1.5s ease infinite; }
+
+/* Drag handle */
+.drag-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-neutral);
+  border-radius: 2px;
+  margin: 0 auto 14px;
+}
+
+/* ============================================================
+   S1 — ONBOARDING: WELCOME
+   ============================================================ */
+.s1-hero {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 360px;
+  background: var(--bg);
+  z-index: 0;
+}
+.orb {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 35%,
+    #FFFFFF 0%,
+    #FFE8DC 30%,
+    #F2C4AA 55%,
+    #E8A07A 75%,
+    rgba(232,115,90,0.15) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow:
+    0 0 50px rgba(232,115,90,0.2),
+    0 0 100px rgba(232,115,90,0.10);
+  animation: breathe 3s ease-in-out infinite;
+}
+.orb::before {
+  content: '';
+  position: absolute;
+  inset: -24px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,115,90,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.orb-icon { font-size: 64px; filter: drop-shadow(0 4px 12px rgba(45,31,26,0.2)); }
+.s1-brand {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 40px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 18px;
+  letter-spacing: -0.5px;
+}
+.s1-tagline {
+  font-family: 'Nunito', sans-serif;
+  font-size: 16px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.s1-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 420px;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 26px 24px 24px;
+  box-shadow: 0 -8px 40px rgba(45,31,26,0.10);
+  z-index: 2;
+}
+.s1-sheet h2 {
+  font-family: 'Lora', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+.s1-sheet .sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ============================================================
+   S2 — PERMISSIONS
+   ============================================================ */
+.s2-body {
+  flex: 1;
+  padding: 0 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+}
+.phone-mock {
+  width: 90px;
+  height: 148px;
+  background: white;
+  border-radius: 16px;
+  border: 2px solid var(--border-neutral);
+  box-shadow: 0 8px 24px rgba(45,31,26,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.phone-mock::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 28px;
+  height: 4px;
+  background: var(--border-neutral);
+  border-radius: 2px;
+}
+.phone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.perm-card {
+  background: var(--surface);
+  border: 1px solid var(--border-neutral);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 12px var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+.perm-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--coral-pale);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.perm-info { flex: 1; }
+.perm-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  font-family: 'Nunito', sans-serif;
+}
+.perm-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Nunito', sans-serif;
+  line-height: 1.4;
+}
+.progress-dots {
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  margin-top: 18px;
+}
+.pdot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border-neutral);
+}
+.pdot.active {
+  width: 22px;
+  border-radius: 4px;
+  background: var(--coral);
+}
+
+/* ============================================================
+   S3 — HOME
+   ============================================================ */
+.home-header {
+  padding: 4px 24px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.greeting-small {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-family: 'Nunito', sans-serif;
+}
+.greeting-name {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 26px;
+  color: var(--text-primary);
+}
+.avatar-lg {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E8735A, #F2A48C);
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-size: 17px;
+  font-weight: 800;
+  font-family: 'Nunito', sans-serif;
+  flex-shrink: 0;
+}
+.search-bar {
+  margin: 0 20px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-neutral);
+  border-radius: 12px;
+  height: 48px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 2px 10px var(--shadow);
+}
+.search-bar .ph {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-family: 'Nunito', sans-serif;
+  flex: 1;
+}
+.home-scroll {
+  flex: 1;
+  overflow: hidden;
+  padding: 0 20px;
+}
+.chips-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 14px;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.chip {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border-neutral);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Nunito', sans-serif;
+}
+.chip.active {
+  background: var(--coral-pale);
+  border-color: rgba(232,115,90,0.4);
+  color: var(--coral);
+}
+.route-card {
+  background: var(--surface);
+  border: 1px solid var(--border-neutral);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 8px var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.route-icon {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--coral-pale);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.route-info { flex: 1; }
+.route-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: 'Nunito', sans-serif;
+  margin-bottom: 2px;
+}
+.route-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Nunito', sans-serif;
+}
+.score {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 11px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 800;
+  font-family: 'Nunito', sans-serif;
+}
+.score-hi  { background: var(--teal-light); color: var(--teal); }
+.score-med { background: #FFF4DC; color: var(--amber); }
+.score-lo  { background: var(--coral-pale); color: var(--coral); }
+.alert-card {
+  background: var(--coral-pale);
+  border-left: 3px solid var(--coral);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.alert-link {
+  font-size: 12px;
+  color: var(--coral);
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+  margin-top: 2px;
+}
+
+/* ============================================================
+   MAP BASE
+   ============================================================ */
+.map-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #EDE8E0;
+}
+/* CSS map background */
+.map-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px);
+  background-size: 44px 44px;
+  z-index: 0;
+}
+.map-road-h, .map-road-v {
+  position: absolute;
+  background: white;
+  z-index: 1;
+  border-radius: 3px;
+}
+.map-road-h { height: 8px; left: 0; right: 0; }
+.map-road-v { width: 8px; top: 0; bottom: 0; }
+.map-road-major-h { height: 14px !important; background: #F5EDE5 !important; border: 1px solid rgba(200,180,165,0.5); }
+.map-road-major-v { width: 14px !important; background: #F5EDE5 !important; border: 1px solid rgba(200,180,165,0.5); }
+.incident-zone {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(232,115,90,0.10);
+  border: 1.5px solid rgba(232,115,90,0.25);
+  z-index: 2;
+}
+.user-dot {
+  position: absolute;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--teal);
+  border: 3px solid white;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(58,175,169,0.4);
+}
+.user-dot::after {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  background: rgba(58,175,169,0.18);
+  animation: pulseRing 2s ease-out infinite;
+}
+
+/* Floating search */
+.map-search {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  background: white;
+  border-radius: 14px;
+  height: 50px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 4px 20px rgba(45,31,26,0.12);
+  z-index: 20;
+}
+.map-search .ph {
+  flex: 1;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-family: 'Nunito', sans-serif;
+}
+
+/* Bottom sheet */
+.bottom-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 12px 20px 20px;
+  box-shadow: 0 -4px 24px rgba(45,31,26,0.09);
+  z-index: 20;
+}
+
+/* Route cards horizontal scroll */
+.route-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-bottom: 14px;
+  padding-bottom: 2px;
+}
+.rcard {
+  width: 240px;
+  min-width: 240px;
+  background: var(--surface);
+  border: 1.5px solid var(--border-neutral);
+  border-radius: 14px;
+  padding: 14px;
+  flex-shrink: 0;
+}
+.rcard.sel {
+  border-color: var(--coral);
+  background: var(--coral-pale);
+}
+.rcard-via {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Nunito', sans-serif;
+  margin-bottom: 3px;
+}
+.rcard-score {
+  font-family: 'Lora', serif;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+  margin-bottom: 2px;
+}
+.rcard-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Nunito', sans-serif;
+  margin-bottom: 8px;
+}
+
+/* ============================================================
+   S5 — JOURNEY
+   ============================================================ */
+.route-line-svg {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.journey-dot {
+  position: absolute;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--coral);
+  border: 3px solid white;
+  z-index: 6;
+  box-shadow: 0 2px 10px rgba(232,115,90,0.5);
+}
+.journey-dot::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: rgba(232,115,90,0.2);
+  animation: pulseRing 1.6s ease-out infinite;
+}
+.hud-row {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  gap: 10px;
+  z-index: 20;
+}
+.hud-card {
+  flex: 1;
+  background: white;
+  border-radius: 12px;
+  padding: 10px 13px;
+  box-shadow: 0 4px 20px rgba(45,31,26,0.12);
+}
+.hud-lbl {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Nunito', sans-serif;
+  margin-bottom: 2px;
+}
+.hud-val {
+  font-family: 'Lora', serif;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.hud-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: 'Nunito', sans-serif;
+  margin-top: 2px;
+}
+.avatar-sm {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: white;
+  font-family: 'Nunito', sans-serif;
+  border: 2px solid white;
+}
+.journey-actions {
+  display: flex;
+  gap: 10px;
+}
+.journey-actions > * { flex: 1; }
+
+/* ============================================================
+   S6 — COMPANION
+   ============================================================ */
+.companion-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 24px 0;
+  position: relative;
+  overflow: hidden;
+}
+.companion-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,115,90,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+.companion-avatar {
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E8735A, #F2A48C);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 46px;
+  position: relative;
+  box-shadow: 0 8px 30px rgba(232,115,90,0.3);
+  margin-bottom: 10px;
+  z-index: 1;
+  animation: breathe 3s ease-in-out infinite;
+}
+.companion-avatar::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 2px solid rgba(232,115,90,0.22);
+  animation: pulseRing 2.2s ease-out infinite;
+}
+.companion-name {
+  font-family: 'Lora', serif;
+  font-style: italic;
+  font-size: 20px;
+  color: var(--coral);
+  margin-bottom: 2px;
+  z-index: 1;
+}
+.companion-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-family: 'Nunito', sans-serif;
+  margin-bottom: 16px;
+  z-index: 1;
+}
+.speech-bubble {
+  background: var(--surface);
+  border: 1px solid var(--border-neutral);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 16px var(--shadow);
+  margin-bottom: 16px;
+  width: 100%;
+  z-index: 1;
+  position: relative;
+}
+.speech-bubble p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  font-family: 'Nunito', sans-serif;
+}
+.waveform {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 40px;
+  margin-bottom: 14px;
+  z-index: 1;
+}
+.wbar {
+  width: 5px;
+  border-radius: 3px;
+  background: var(--coral);
+  animation: wave 0.8s ease-in-out infinite;
+}
+.wbar:nth-child(1)  { height: 12px; animation-delay: 0.00s; }
+.wbar:nth-child(2)  { height: 22px; animation-delay: 0.10s; }
+.wbar:nth-child(3)  { height: 36px; animation-delay: 0.20s; }
+.wbar:nth-child(4)  { height: 28px; animation-delay: 0.30s; }
+.wbar:nth-child(5)  { height: 40px; animation-delay: 0.15s; }
+.wbar:nth-child(6)  { height: 32px; animation-delay: 0.25s; }
+.wbar:nth-child(7)  { height: 22px; animation-delay: 0.35s; }
+.wbar:nth-child(8)  { height: 30px; animation-delay: 0.05s; }
+.wbar:nth-child(9)  { height: 16px; animation-delay: 0.40s; }
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 7px;
+  z-index: 1;
+}
+.status-text {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-family: 'Nunito', sans-serif;
+}
+.companion-footer {
+  padding: 0 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============================================================
+   S7 — AI CALL
+   ============================================================ */
+.call-bg {
+  background: #1A1210;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.call-status-bar {
+  height: 52px;
+  padding: 18px 28px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.call-header {
+  padding: 10px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.call-close {
+  position: absolute;
+  right: 20px;
+  top: 10px;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.7);
+  font-size: 15px;
+  cursor: pointer;
+}
+.call-title-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  font-family: 'Nunito', sans-serif;
+}
+.call-subtitle-text {
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+  font-family: 'Nunito', sans-serif;
+  margin-top: 2px;
+}
+.call-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px 0;
+  position: relative;
+}
+.call-avatar {
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E8735A, #F2A48C);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 84px;
+  position: relative;
+  box-shadow: 0 16px 60px rgba(232,115,90,0.45);
+  margin-bottom: 16px;
+  animation: breathe 3s ease-in-out infinite;
+}
+.call-avatar::before {
+  content: '';
+  position: absolute;
+  inset: -18px;
+  border-radius: 50%;
+  border: 2px solid rgba(232,115,90,0.3);
+  animation: callPulse 2s ease-out infinite;
+}
+.call-avatar::after {
+  content: '';
+  position: absolute;
+  inset: -34px;
+  border-radius: 50%;
+  border: 1px solid rgba(232,115,90,0.15);
+  animation: callPulse 2s ease-out 0.6s infinite;
+}
+.call-ai-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: white;
+  font-family: 'Nunito', sans-serif;
+  margin-bottom: 4px;
+}
+.call-listening {
+  font-size: 13px;
+  color: var(--coral-light);
+  font-family: 'Nunito', sans-serif;
+}
+.call-listening::after {
+  content: '●●●';
+  font-size: 8px;
+  letter-spacing: 3px;
+  vertical-align: middle;
+  margin-left: 4px;
+  animation: blink 1.4s steps(1) infinite;
+}
+.call-transcript {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin: 14px 0 0;
+  width: 100%;
+}
+.call-transcript p {
+  font-size: 14px;
+  color: rgba(255,255,255,0.88);
+  font-family: 'Nunito', sans-serif;
+  line-height: 1.55;
+}
+.user-thumb {
+  position: absolute;
+  bottom: 14px;
+  right: 0px;
+  width: 80px; height: 100px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 34px;
+  opacity: 0.7;
+}
+.call-controls {
+  background: rgba(255,255,255,0.03);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 16px 20px 20px;
+  flex-shrink: 0;
+}
+.call-btns {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+.cbtn {
+  width: 58px; height: 58px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.10);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.cbtn.sos {
+  background: var(--coral);
+  box-shadow: 0 4px 20px rgba(232,115,90,0.45);
+}
+.call-end {
+  text-align: center;
+  color: var(--coral-light);
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+  margin-bottom: 6px;
+}
+.call-back {
+  text-align: center;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* ============================================================
+   S8 — EMERGENCY
+   ============================================================ */
+.emergency-bg {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 24px;
+}
+.emergency-bg::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,115,90,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.emer-card {
+  background: var(--surface);
+  border-radius: 24px;
+  padding: 28px 24px 24px;
+  width: 100%;
+  box-shadow:
+    0 20px 60px rgba(45,31,26,0.14),
+    0 0 0 1px rgba(232,115,90,0.10);
+  position: relative;
+  z-index: 1;
+}
+.emer-icon-wrap {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.emer-icon {
+  font-size: 56px;
+  display: inline-block;
+  filter: drop-shadow(0 0 16px rgba(232,115,90,0.5));
+}
+.emer-title {
+  font-family: 'Lora', serif;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--coral);
+  text-align: center;
+  margin-bottom: 8px;
+}
+.emer-msg {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-family: 'Nunito', sans-serif;
+  margin-bottom: 4px;
+}
+.emer-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  font-family: 'Nunito', sans-serif;
+  margin-bottom: 18px;
+}
+.countdown-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+.countdown-num {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Lora', serif;
+  font-size: 34px;
+  font-weight: 600;
+  color: var(--coral);
+}
+.checklist {
+  list-style: none;
+  margin-bottom: 20px;
+}
+.checklist li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Nunito', sans-serif;
+  color: var(--text-primary);
+}
+.ci {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.ci-done   { background: var(--teal); color: white; }
+.ci-spin   { background: #FFF4DC; color: var(--amber); animation: spin 1.5s linear infinite; }
+.emer-btns {
+  display: flex;
+  gap: 10px;
+}
+.emer-btns > * { flex: 1; }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     S1 — ONBOARDING: WELCOME
+     ============================================================ -->
+<div class="frame">
+  <!-- Hero / Orb -->
+  <div class="s1-hero">
+    <div class="orb">
+      <span class="orb-icon">🛡️</span>
+    </div>
+    <div class="s1-brand">guardia</div>
+    <div class="s1-tagline">Walk home fearlessly.</div>
+  </div>
+
+  <!-- Bottom sheet -->
+  <div class="s1-sheet">
+    <h2>Let's get you set up</h2>
+    <p class="sub">Takes 30 seconds.</p>
+
+    <div class="input-group">
+      <label class="input-label">Your name</label>
+      <input class="input-field" type="text" placeholder="Sarah">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Emergency contact name</label>
+      <input class="input-field" type="text" placeholder="Mum">
+    </div>
+    <div class="input-group" style="margin-bottom:16px;">
+      <label class="input-label">Emergency contact phone</label>
+      <input class="input-field" type="text" placeholder="+61 400 000 000">
+    </div>
+
+    <button class="btn-primary">Continue →</button>
+    <p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:10px;font-family:'Nunito',sans-serif;">
+      Your data stays private. Never shared.
+    </p>
+  </div>
+  <div class="frame-label">S1 Onboarding</div>
+</div>
+
+
+<!-- ============================================================
+     S2 — ONBOARDING: PERMISSIONS
+     ============================================================ -->
+<div class="frame" style="display:flex;flex-direction:column;">
+  <!-- Spacer for notch -->
+  <div style="height:52px;"></div>
+
+  <!-- Illustration area -->
+  <div style="display:flex;justify-content:center;padding:16px 0 0;">
+    <div class="phone-mock">
+      <div class="phone-content">
+        <span style="font-size:28px;">📍</span>
+        <span style="font-size:22px;">🎙️</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Headings -->
+  <div style="padding:20px 28px 0;text-align:center;">
+    <h1 style="font-family:'Lora',serif;font-style:italic;font-size:26px;color:var(--text-primary);margin-bottom:6px;">
+      Two quick permissions
+    </h1>
+    <p style="font-size:14px;color:var(--text-muted);font-family:'Nunito',sans-serif;margin-bottom:20px;">
+      Guardia needs these to keep you safe.
+    </p>
+  </div>
+
+  <!-- Permission cards -->
+  <div class="s2-body">
+    <div class="perm-card" style="margin-bottom:10px;">
+      <div class="perm-icon">📍</div>
+      <div class="perm-info">
+        <div class="perm-title">Location Access</div>
+        <div class="perm-desc">So we can track your route and alert contacts</div>
+      </div>
+      <button class="btn-sm-coral">Allow Location</button>
+    </div>
+
+    <div class="perm-card">
+      <div class="perm-icon">🎙️</div>
+      <div class="perm-info">
+        <div class="perm-title">Voice Commands</div>
+        <div class="perm-desc">Say 'Help me' or 'I'm home safe' hands-free</div>
+      </div>
+      <button class="btn-sm-coral">Allow Mic</button>
+    </div>
+
+    <button style="background:none;border:none;color:var(--text-muted);font-size:13px;font-family:'Nunito',sans-serif;margin-top:16px;cursor:pointer;padding:8px;">
+      Skip for now
+    </button>
+
+    <div class="progress-dots">
+      <div class="pdot"></div>
+      <div class="pdot active"></div>
+    </div>
+  </div>
+
+  <div class="frame-label">S2 Permissions</div>
+</div>
+
+
+<!-- ============================================================
+     S3 — HOME
+     ============================================================ -->
+<div class="frame" style="display:flex;flex-direction:column;">
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <div class="signal-bars"><span></span><span></span><span></span></div>
+      <span class="wifi-icon">▲</span>
+      <div class="battery"><div class="battery-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="home-header">
+    <div>
+      <div class="greeting-small">Good evening,</div>
+      <div class="greeting-name">Sarah 👋</div>
+    </div>
+    <div class="avatar-lg">S</div>
+  </div>
+
+  <!-- Search bar -->
+  <div class="search-bar">
+    <span style="font-size:16px;">📍</span>
+    <span class="ph">Where are you heading?</span>
+    <span style="font-size:16px;color:var(--text-muted);">🔍</span>
+  </div>
+
+  <!-- Content -->
+  <div class="home-scroll">
+    <div class="section-head">Quick destinations</div>
+    <div class="chips-row">
+      <div class="chip active">🏠 Home</div>
+      <div class="chip">🎓 RMIT</div>
+      <div class="chip">🚇 Flinders St</div>
+      <div class="chip">➕ Add</div>
+    </div>
+
+    <div class="section-head">Recent routes</div>
+    <div class="route-card">
+      <div class="route-icon">🚶</div>
+      <div class="route-info">
+        <div class="route-name">Home via Collins St</div>
+        <div class="route-meta">1.1 km · 14 min</div>
+      </div>
+      <span class="score score-hi">87</span>
+    </div>
+    <div class="route-card">
+      <div class="route-icon">🎓</div>
+      <div class="route-info">
+        <div class="route-name">RMIT Melbourne City</div>
+        <div class="route-meta">0.9 km · 11 min</div>
+      </div>
+      <span class="score score-med">59</span>
+    </div>
+    <div class="route-card">
+      <div class="route-icon">🚇</div>
+      <div class="route-info">
+        <div class="route-name">Flinders St Station</div>
+        <div class="route-meta">1.3 km · 16 min</div>
+      </div>
+      <span class="score score-hi">76</span>
+    </div>
+
+    <div class="section-head" style="margin-top:10px;">Nearby alerts</div>
+    <div class="alert-card">
+      <span style="font-size:18px;">⚠️</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--text-primary);font-family:'Nunito',sans-serif;">
+          2 incidents reported within 200m
+        </div>
+        <div class="alert-link">View on map →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-tab active">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label" style="color:var(--coral);">Home</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-icon">🗺️</span>
+      <span class="nav-label">Map</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-icon">📞</span>
+      <span class="nav-label">Companion</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Profile</span>
+    </div>
+  </div>
+  <div class="frame-label">S3 Home</div>
+</div>
+
+
+<!-- ============================================================
+     S4 — MAP (pre-journey)
+     ============================================================ -->
+<div class="frame" style="display:flex;flex-direction:column;">
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <div class="signal-bars"><span></span><span></span><span></span></div>
+      <span class="wifi-icon">▲</span>
+      <div class="battery"><div class="battery-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Map area -->
+  <div class="map-wrap">
+    <!-- Road grid -->
+    <div class="map-road-h map-road-major-h" style="top:170px;"></div>
+    <div class="map-road-h" style="top:280px;height:6px;"></div>
+    <div class="map-road-h map-road-major-h" style="top:370px;"></div>
+    <div class="map-road-h" style="top:450px;height:5px;"></div>
+    <div class="map-road-v" style="left:72px;"></div>
+    <div class="map-road-v map-road-major-v" style="left:154px;"></div>
+    <div class="map-road-v" style="left:248px;width:6px;"></div>
+    <div class="map-road-v map-road-major-v" style="left:305px;"></div>
+
+    <!-- Incident zones -->
+    <div class="incident-zone" style="width:110px;height:110px;top:125px;left:205px;transform:translate(-50%,-50%);"></div>
+    <div class="incident-zone" style="width:84px;height:84px;top:345px;left:68px;transform:translate(-50%,-50%);"></div>
+
+    <!-- User location -->
+    <div class="user-dot" style="top:296px;left:165px;transform:translate(-50%,-50%);"></div>
+
+    <!-- Floating search -->
+    <div class="map-search">
+      <span style="font-size:16px;color:var(--coral);">📍</span>
+      <span class="ph">Where are you heading?</span>
+      <span style="font-size:16px;color:var(--text-muted);">⚙️</span>
+    </div>
+
+    <!-- Bottom sheet -->
+    <div class="bottom-sheet">
+      <div class="drag-handle"></div>
+      <div class="section-head">Suggested for tonight</div>
+      <div class="route-scroll">
+        <!-- Safest route (selected) -->
+        <div class="rcard sel">
+          <div class="rcard-via">Via Collins St</div>
+          <div class="rcard-score" style="color:var(--teal);">87</div>
+          <div class="rcard-meta">14 min · 1.1 km</div>
+          <span class="badge badge-teal">+ Safest</span>
+        </div>
+        <!-- Faster but riskier -->
+        <div class="rcard">
+          <div class="rcard-via">Via Flinders Ln</div>
+          <div class="rcard-score" style="color:var(--amber);">52</div>
+          <div class="rcard-meta">11 min · 0.9 km</div>
+          <span class="badge badge-amber">▲ 2 incidents</span>
+        </div>
+      </div>
+      <button class="btn-primary">Start Journey →</button>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-tab">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </div>
+    <div class="nav-tab active">
+      <span class="nav-icon">🗺️</span>
+      <span class="nav-label" style="color:var(--coral);">Map</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-icon">📞</span>
+      <span class="nav-label">Companion</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Profile</span>
+    </div>
+  </div>
+  <div class="frame-label">S4 Map</div>
+</div>
+
+
+<!-- ============================================================
+     S5 — JOURNEY (active)
+     ============================================================ -->
+<div class="frame" style="display:flex;flex-direction:column;">
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <div class="signal-bars"><span></span><span></span><span></span></div>
+      <span class="wifi-icon">▲</span>
+      <div class="battery"><div class="battery-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- Map area -->
+  <div class="map-wrap">
+    <!-- Roads -->
+    <div class="map-road-h map-road-major-h" style="top:170px;"></div>
+    <div class="map-road-h" style="top:310px;height:6px;"></div>
+    <div class="map-road-v map-road-major-v" style="left:154px;"></div>
+    <div class="map-road-v" style="left:270px;width:6px;"></div>
+
+    <!-- Teal route line (SVG) -->
+    <svg class="route-line-svg" width="390" height="100%" viewBox="0 0 390 700" preserveAspectRatio="none">
+      <path d="M161 80 L161 310 L270 310" fill="none"
+        stroke="#3AAFA9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"
+        stroke-dasharray="8 4" opacity="0.85"/>
+      <circle cx="161" cy="80" r="6" fill="#3AAFA9" opacity="0.5"/>
+      <circle cx="270" cy="310" r="7" fill="#3AAFA9" opacity="0.7"/>
+    </svg>
+
+    <!-- Journey dot (user on route) -->
+    <div class="journey-dot" style="top:210px;left:155px;transform:translate(-50%,-50%);"></div>
+
+    <!-- HUD cards -->
+    <div class="hud-row">
+      <div class="hud-card">
+        <div class="hud-lbl">ETA</div>
+        <div class="hud-val">8 min</div>
+        <div class="hud-sub">0.6 km left</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-lbl">Safety</div>
+        <div class="hud-val" style="color:var(--teal);">87</div>
+        <div class="hud-sub" style="color:var(--teal);display:flex;align-items:center;gap:4px;">
+          <span class="dot-status dot-green"></span> Safe zone
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom sheet -->
+    <div class="bottom-sheet">
+      <div class="drag-handle"></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span class="dot-status dot-green" style="animation:blink 1.6s ease infinite;background:#3CB371;"></span>
+        <span style="font-size:15px;font-weight:800;color:var(--text-primary);font-family:'Nunito',sans-serif;">On safe route</span>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);font-family:'Nunito',sans-serif;margin-bottom:10px;">
+        Via Collins St — well-lit path
+      </p>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <span style="font-size:12px;color:var(--text-muted);font-family:'Nunito',sans-serif;">Watching:</span>
+        <div class="avatar-sm" style="background:var(--coral);">M</div>
+        <div class="avatar-sm" style="background:var(--teal);margin-left:-8px;">A</div>
+        <div class="avatar-sm" style="background:var(--text-muted);margin-left:-8px;">+1</div>
+      </div>
+      <div class="journey-actions">
+        <button class="btn-ghost-teal" style="height:48px;font-size:13px;border-radius:12px;">✅ I'm Home Safe</button>
+        <button class="btn-primary" style="height:48px;font-size:13px;border-radius:12px;background:linear-gradient(135deg,#E8735A,#c0392b);">🚨 SOS</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-tab">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </div>
+    <div class="nav-tab active">
+      <span class="nav-icon">🗺️</span>
+      <span class="nav-label" style="color:var(--coral);">Map</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-icon">📞</span>
+      <span class="nav-label">Companion</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Profile</span>
+    </div>
+  </div>
+  <div class="frame-label">S5 Journey</div>
+</div>
+
+
+<!-- ============================================================
+     S6 — COMPANION
+     ============================================================ -->
+<div class="frame" style="display:flex;flex-direction:column;">
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <div class="signal-bars"><span></span><span></span><span></span></div>
+      <span class="wifi-icon">▲</span>
+      <div class="battery"><div class="battery-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="companion-body">
+    <div class="companion-glow"></div>
+
+    <div class="companion-avatar">🛡️</div>
+    <div class="companion-name">Guardia</div>
+    <div class="companion-tag">Companion</div>
+
+    <div class="speech-bubble">
+      <p>"You're doing great, Sarah. Collins St ahead is well-lit — you're almost through the busy section. I'm right here with you."</p>
+    </div>
+
+    <div class="waveform">
+      <div class="wbar"></div>
+      <div class="wbar"></div>
+      <div class="wbar"></div>
+      <div class="wbar"></div>
+      <div class="wbar"></div>
+      <div class="wbar"></div>
+      <div class="wbar"></div>
+      <div class="wbar"></div>
+      <div class="wbar"></div>
+    </div>
+
+    <div class="status-row">
+      <span class="dot-status dot-coral"></span>
+      <span class="status-text">Listening for your voice</span>
+    </div>
+    <div class="status-row">
+      <span class="dot-status dot-green"></span>
+      <span class="status-text">Route active · 6 min remaining</span>
+    </div>
+  </div>
+
+  <div class="companion-footer">
+    <button class="btn-ghost">End Companion</button>
+    <p style="text-align:center;font-size:11px;color:var(--text-muted);font-family:'Nunito',sans-serif;">
+      Say 'Help me' anytime to trigger emergency
+    </p>
+  </div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <div class="nav-tab">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">Home</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-icon">🗺️</span>
+      <span class="nav-label">Map</span>
+    </div>
+    <div class="nav-tab active">
+      <span class="nav-icon">📞</span>
+      <span class="nav-label" style="color:var(--coral);">Companion</span>
+    </div>
+    <div class="nav-tab">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Profile</span>
+    </div>
+  </div>
+  <div class="frame-label">S6 Companion</div>
+</div>
+
+
+<!-- ============================================================
+     S7 — AI CALL (immersive dark)
+     ============================================================ -->
+<div class="frame" style="display:flex;flex-direction:column;background:#1A1210;">
+  <!-- Dark status bar -->
+  <div class="call-status-bar">
+    <span class="status-time" style="color:rgba(255,255,255,0.8);">9:41</span>
+    <div class="status-icons">
+      <div class="signal-bars">
+        <span style="background:rgba(255,255,255,0.6);"></span>
+        <span style="background:rgba(255,255,255,0.6);"></span>
+        <span style="background:rgba(255,255,255,0.6);"></span>
+      </div>
+      <span style="font-size:11px;color:rgba(255,255,255,0.6);">▲</span>
+      <div class="battery" style="border-color:rgba(255,255,255,0.5);">
+        <div class="battery-fill" style="background:rgba(255,255,255,0.6);"></div>
+        <style>.battery::after { background:rgba(255,255,255,0.5); }</style>
+      </div>
+    </div>
+  </div>
+
+  <div class="call-bg">
+    <div class="call-header">
+      <div class="call-close">✕</div>
+      <div class="call-title-text">Guardia Companion</div>
+      <div class="call-subtitle-text">Secure · Encrypted</div>
+    </div>
+
+    <div class="call-main">
+      <div class="call-avatar">🛡️</div>
+      <div class="call-ai-name">Guardia AI</div>
+      <div class="call-listening">Listening</div>
+      <div class="call-transcript">
+        <p>"I can hear you, Sarah. You're safe. Tell me what's happening."</p>
+      </div>
+      <!-- User thumbnail -->
+      <div class="user-thumb">👤</div>
+    </div>
+
+    <div class="call-controls">
+      <div class="call-btns">
+        <div class="cbtn">🔇</div>
+        <div class="cbtn">📷</div>
+        <div class="cbtn">🔊</div>
+        <div class="cbtn sos">🚨</div>
+      </div>
+      <div class="call-end">End Call</div>
+      <div class="call-back">← Back to map companion</div>
+    </div>
+  </div>
+
+  <div class="frame-label" style="color:#9A8C89;">S7 AI Call</div>
+</div>
+
+
+<!-- ============================================================
+     S8 — EMERGENCY ACTIVE
+     ============================================================ -->
+<div class="frame" style="display:flex;flex-direction:column;">
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <div class="status-icons">
+      <div class="signal-bars"><span></span><span></span><span></span></div>
+      <span class="wifi-icon">▲</span>
+      <div class="battery"><div class="battery-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="emergency-bg">
+    <div class="emer-card">
+      <div class="emer-icon-wrap">
+        <span class="emer-icon">🚨</span>
+      </div>
+      <div class="emer-title">Emergency Alert</div>
+      <div class="emer-msg">You've been off-route for 3 minutes.</div>
+      <div class="emer-sub">Calling 000 automatically in</div>
+
+      <!-- SVG countdown ring -->
+      <div class="countdown-wrap">
+        <svg width="96" height="96" viewBox="0 0 96 96">
+          <!-- Track -->
+          <circle cx="48" cy="48" r="40"
+            fill="none"
+            stroke="var(--coral-pale)"
+            stroke-width="7"/>
+          <!-- Progress (8/10 = 80% shown, rotated -90deg via transform) -->
+          <circle cx="48" cy="48" r="40"
+            fill="none"
+            stroke="var(--coral)"
+            stroke-width="7"
+            stroke-linecap="round"
+            stroke-dasharray="251.3"
+            stroke-dashoffset="50"
+            transform="rotate(-90 48 48)"/>
+        </svg>
+        <div class="countdown-num">8</div>
+      </div>
+
+      <!-- Checklist -->
+      <ul class="checklist">
+        <li>
+          <div class="ci ci-done">✓</div>
+          Location sent to Mum, Alex
+        </li>
+        <li>
+          <div class="ci ci-done">✓</div>
+          Audio recording started
+        </li>
+        <li>
+          <div class="ci ci-spin">↻</div>
+          <span style="color:var(--amber);">Connecting to 000...</span>
+        </li>
+      </ul>
+
+      <div class="emer-btns">
+        <button class="btn-ghost-teal" style="height:48px;font-size:14px;border-radius:12px;">I'm Safe</button>
+        <button class="btn-primary" style="height:48px;font-size:14px;border-radius:12px;background:linear-gradient(135deg,#E8735A,#c0392b);">📞 Call Now</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-label">S8 Emergency</div>
+</div>
+
+</body>
+</html>
