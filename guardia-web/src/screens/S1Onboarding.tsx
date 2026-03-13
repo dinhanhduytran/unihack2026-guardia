@@ -10,8 +10,17 @@ export default function S1Onboarding() {
   const [userName, setUserName] = useState("");
   const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  const sanitizePhone = (value: string) => value.replace(/\D/g, "");
+  const userNameError = userName.trim() === "";
+  const emergencyContactNameError = emergencyContactName.trim() === "";
+  const emergencyContactPhoneError = emergencyContactPhone.trim() === "";
+  const hasAnyError = userNameError || emergencyContactNameError || emergencyContactPhoneError;
 
   const handleContinue = () => {
+    setAttemptedSubmit(true);
+    if (hasAnyError) return;
+
     dispatch(
       setOnboardingProfile({
         userName: userName.trim(),
@@ -43,6 +52,9 @@ export default function S1Onboarding() {
             value={userName}
             onChange={(event) => setUserName(event.target.value)}
           />
+          {attemptedSubmit && userNameError ? (
+            <p style={{ marginTop: 4, fontSize: 11, color: "#D22F2F" }}>Please fill in your name.</p>
+          ) : null}
         </div>
         <div className="input-group">
           <label className="input-label">Emergency contact name</label>
@@ -53,6 +65,9 @@ export default function S1Onboarding() {
             value={emergencyContactName}
             onChange={(event) => setEmergencyContactName(event.target.value)}
           />
+          {attemptedSubmit && emergencyContactNameError ? (
+            <p style={{ marginTop: 4, fontSize: 11, color: "#D22F2F" }}>Please fill in emergency contact name.</p>
+          ) : null}
         </div>
         <div className="input-group" style={{ marginBottom: 16 }}>
           <label className="input-label">Emergency contact phone</label>
@@ -61,12 +76,20 @@ export default function S1Onboarding() {
             type="text"
             placeholder="+61 400 000 000"
             value={emergencyContactPhone}
-            onChange={(event) => setEmergencyContactPhone(event.target.value)}
+            onChange={(event) => setEmergencyContactPhone(sanitizePhone(event.target.value))}
           />
+          {attemptedSubmit && emergencyContactPhoneError ? (
+            <p style={{ marginTop: 4, fontSize: 11, color: "#D22F2F" }}>Please fill in emergency contact phone.</p>
+          ) : null}
         </div>
         <button className="btn-primary" onClick={handleContinue}>
           Continue →
         </button>
+        {attemptedSubmit && hasAnyError ? (
+          <p style={{ textAlign: "center", fontSize: 11, color: "#D22F2F", marginTop: 8 }}>
+            Some boxes are not filled. Please complete all fields.
+          </p>
+        ) : null}
         <p style={{ textAlign: "center", fontSize: 11, color: "var(--text-muted)", marginTop: 10 }}>
           Your data stays private. Never shared.
         </p>

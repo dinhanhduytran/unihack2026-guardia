@@ -10,6 +10,7 @@ export default function Profile() {
   const [emergencyName, setEmergencyName] = useState(emergencyContactNameFromStore);
   const [emergencyNumber, setEmergencyNumber] = useState(emergencyContactPhoneFromStore);
   const [saved, setSaved] = useState(false);
+  const sanitizePhone = (value: string) => value.replace(/\D/g, "");
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -54,7 +55,7 @@ export default function Profile() {
                 type="tel"
                 value={emergencyNumber}
                 onChange={(event) => {
-                  setEmergencyNumber(event.target.value);
+                  setEmergencyNumber(sanitizePhone(event.target.value));
                   if (saved) setSaved(false);
                 }}
                 placeholder="+61 400 000 000"
