@@ -5,6 +5,9 @@ import { useAppSelector } from "../store/hooks";
 export default function S3Home() {
   const origin = useAppSelector((state) => state.location.origin);
   const destination = useAppSelector((state) => state.location.destination);
+  const userName = useAppSelector((state) => state.profile.userName);
+  const displayName = userName || "Sarah";
+  const avatarInitial = displayName.trim().charAt(0).toUpperCase() || "S";
 
   return (
     <PhoneFrame withNav>
@@ -19,9 +22,9 @@ export default function S3Home() {
       <div className="home-header">
         <div>
           <div className="greeting-small">Good evening,</div>
-          <div className="greeting-name">Sarah 👋</div>
+          <div className="greeting-name">{displayName} 👋</div>
         </div>
-        <div className="avatar-lg">S</div>
+        <div className="avatar-lg">{avatarInitial}</div>
       </div>
       <PlaceSearchInput
         kind="destination"
