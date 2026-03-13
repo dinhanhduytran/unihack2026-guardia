@@ -1,0 +1,35 @@
+# Python specific
+__pycache__/
+*.pyc
+*.pyd
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Virtual environment
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables and secrets (important!)
+.env
+.flaskenv
+secrets.toml
+debug.log
+.idea/  # Ignore JetBrains IDE configuration files
+
+# Editors/IDEs
+# Visual Studio Code
+.vscode/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# Misc build artifacts
+dist/
+build/
+*.so
