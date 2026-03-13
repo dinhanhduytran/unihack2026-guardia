@@ -1,4 +1,5 @@
-import { Navigate, createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter } from "react-router-dom";
+import S0Welcome from "../screens/S0Welcome";
 import S1Onboarding from "../screens/S1Onboarding";
 import S2Permissions from "../screens/S2Permissions";
 import S3Home from "../screens/S3Home";
@@ -10,7 +11,7 @@ import S8Emergency from "../screens/S8Emergency";
 import Profile from "../screens/Profile";
 
 export const appRouter = createBrowserRouter([
-  { path: "/", element: <Navigate to="/onboarding" replace /> },
+  { path: "/", element: <S0Welcome /> },
   { path: "/onboarding", element: <S1Onboarding /> },
   { path: "/permissions", element: <S2Permissions /> },
   { path: "/home", element: <S3Home /> },

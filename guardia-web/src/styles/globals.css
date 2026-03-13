@@ -52,6 +52,27 @@ body { margin: 0; font-family: "Nunito", sans-serif; background: var(--bg); }
 .dot-coral { background: var(--coral); animation: blink 1.2s infinite; }
 .dot-green { background: #3cb371; }
 
+.s0-body { flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 24px 24px 42px; position: relative; overflow: hidden; }
+.s0-body::before { content: ""; position: absolute; top: -70px; right: -70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, rgba(232,115,90,.12), transparent 70%); pointer-events: none; }
+.s0-body::after { content: ""; position: absolute; bottom: 80px; left: -50px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, rgba(58,175,169,.1), transparent 70%); pointer-events: none; }
+.s0-greeting,.s0-hero,.s0-bottom { position: relative; z-index: 1; }
+.s0-greeting { margin-top: 6px; }
+.s0-wave { font-size: 28px; display: inline-block; margin-bottom: 6px; }
+.s0-greeting-title { font-family: "Lora", serif; font-size: 28px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+.s0-greeting-sub { margin-top: 8px; font-size: 14px; color: var(--text-muted); line-height: 1.5; max-width: 260px; }
+.s0-hero { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 4px; }
+.s0-logo-orb { width: 118px; height: 118px; border-radius: 34px; background: linear-gradient(145deg, #e8735a 0%, #f2a48c 50%, #3aafa9 100%); display: flex; align-items: center; justify-content: center; font-size: 52px; box-shadow: 0 8px 32px rgba(232,115,90,.3), 0 2px 8px rgba(232,115,90,.2); animation: breathe 3s ease-in-out infinite; }
+.s0-app-name { font-family: "Lora", serif; font-size: 34px; font-weight: 600; color: var(--text-primary); line-height: 1; }
+.s0-app-name span { color: var(--coral); }
+.s0-tagline { margin-top: -8px; font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.6px; font-weight: 700; }
+.s0-bottom { display: flex; flex-direction: column; gap: 18px; }
+.s0-pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.s0-pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 20px; border: 1px solid var(--border-neutral); background: var(--surface); color: var(--text-secondary); font-size: 12px; font-weight: 700; padding: 6px 12px; box-shadow: 0 1px 4px var(--shadow); }
+.s0-pill-dot { width: 6px; height: 6px; border-radius: 50%; }
+.s0-dot-teal { background: var(--teal); }
+.s0-dot-coral { background: var(--coral); }
+.s0-dot-amber { background: var(--amber); }
+
 .s1-hero { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 360px; }
 .orb { width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle at 38% 35%, #fff 0%, #ffe8dc 30%, #f2c4aa 55%, #e8a07a 75%, rgba(232,115,90,.15) 100%); display: flex; align-items: center; justify-content: center; animation: breathe 3s infinite; }
 .orb-icon { font-size: 64px; }

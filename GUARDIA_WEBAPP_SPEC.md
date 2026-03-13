@@ -5,7 +5,7 @@
 Use **React + Vite + TypeScript** first.
 
 - This project is UI-heavy, mobile-first, and does not need SSR/SEO initially.
-- The source of truth is a single static prototype (`guardia-screens.html`) with 8 app-like screens.
+- The source of truth includes the app prototype (`guardia-screens.html`) and welcome entry prototype (`safe-router-welcome-v2.html`).
 - Vite gives faster setup, faster iteration, and simpler deployment for demo/hackathon velocity.
 - If later you need auth + server rendering + SEO pages, migrate to Next.js.
 
@@ -13,13 +13,13 @@ Use **React + Vite + TypeScript** first.
 
 Build a women's safety **mobile-first web app** called **Guardia** based on:
 
-- Existing reference: `guardia-screens.html`
-- New clarified prompt (8 screens, 390x844 primary viewport)
+- Existing references: `guardia-screens.html`, `safe-router-welcome-v2.html`
+- New clarified prompt (9 screens total including welcome entry, 390x844 primary viewport)
 
 Target behavior:
 
 - Feels like an app shell on mobile (one-handed use).
-- Consistent design system across all 8 screens.
+- Consistent design system across all 9 screens.
 - Bottom nav appears on screens 3, 4, 5, 6.
 - Screen 7 and 8 are immersive overlays (no bottom nav).
 
@@ -60,6 +60,7 @@ guardia-web/
         RouteCard.tsx
         IncidentZone.tsx
     screens/
+      S0Welcome.tsx
       S1Onboarding.tsx
       S2Permissions.tsx
       S3Home.tsx
@@ -108,6 +109,7 @@ Typography:
 
 ## Routing Model
 
+- `/` -> S0 Welcome
 - `/onboarding` -> S1
 - `/permissions` -> S2
 - `/home` -> S3
@@ -140,6 +142,15 @@ Typography:
    - S4 default expanded ~38%, S5 ~28%.
 
 ## Screen-by-Screen Build Notes
+
+### S0 Welcome
+- Build from `safe-router-welcome-v2.html` visual language:
+  - Greeting area ("Hello, Welcome back!")
+  - Center brand hero orb + "Safe Router"
+  - Feature pills + primary CTA
+- Primary CTA text: `Get Started ->`.
+- CTA action: route to `/onboarding` (S1Onboarding).
+- No bottom nav.
 
 ### S1 Onboarding
 - Recreate glowing orb + centered shield + brand wordmark.
@@ -202,6 +213,7 @@ Use a simple global store (Zustand/Redux/context):
 
 Transition examples:
 
+- S0 "Get Started" -> route `/onboarding`
 - S4 "Start Journey" -> set `journey.status = active` -> route `/journey`
 - Incident zone reached -> route `/companion`
 - Voice trigger "Help me" -> route `/emergency`
@@ -228,7 +240,8 @@ Mirror these keyframes from `guardia-screens.html`:
 
 ## Acceptance Criteria
 
-- All 8 screens exist and match prompt look/feel.
+- All 9 screens exist (S0-S8) and match prompt look/feel.
+- App entry at `/` shows S0 Welcome and `Get Started` navigates to `/onboarding` (S1).
 - Mobile-first layout validated at `390x844`.
 - Bottom nav appears only on S3-S6.
 - S4/S5 bottom sheets and route card selection work.
