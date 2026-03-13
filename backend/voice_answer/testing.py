@@ -57,8 +57,6 @@ async def run_pipeline(avatar_id: str):
         await runner.run(task)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
-
 async def main():
     avatar_id = "Ann_Therapist_public"  # built-in HeyGen avatar
     await run_pipeline(avatar_id)
