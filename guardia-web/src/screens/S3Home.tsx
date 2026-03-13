@@ -1,6 +1,11 @@
 import PhoneFrame from "../components/layout/PhoneFrame";
+import PlaceSearchInput from "../components/location/PlaceSearchInput";
+import { useAppSelector } from "../store/hooks";
 
 export default function S3Home() {
+  const origin = useAppSelector((state) => state.location.origin);
+  const destination = useAppSelector((state) => state.location.destination);
+
   return (
     <PhoneFrame withNav>
       <div className="status-bar">
@@ -18,10 +23,16 @@ export default function S3Home() {
         </div>
         <div className="avatar-lg">S</div>
       </div>
-      <div className="search-bar">
-        <span style={{ fontSize: 16 }}>📍</span>
-        <span className="ph">Where are you heading?</span>
-        <span style={{ fontSize: 16, color: "var(--text-muted)" }}>🔍</span>
+      <PlaceSearchInput
+        kind="destination"
+        placeholder="Where are you heading?"
+        className="search-bar"
+      />
+      <div className="location-state-card">
+        <div><strong>Origin:</strong> {origin?.address ?? "Not set"}</div>
+        <div>{origin?.lat != null && origin?.long != null ? `${origin.lat}, ${origin.long}` : "No coordinates"}</div>
+        <div style={{ marginTop: 6 }}><strong>Destination:</strong> {destination?.address ?? "Not set"}</div>
+        <div>{destination?.lat != null && destination?.long != null ? `${destination.lat}, ${destination.long}` : "No coordinates"}</div>
       </div>
       <div className="home-scroll">
         <div className="section-head">Quick destinations</div>
