@@ -10,11 +10,9 @@ import Map, {
 import PhoneFrame from "../components/layout/PhoneFrame";
 import MelbourneTime from "../components/layout/MelbourneTime";
 import "mapbox-gl/dist/mapbox-gl.css";
+import { useAppSelector } from "../store/hooks";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
-
-// Destination coordinates (example: a point in Melbourne)
-const DESTINATION: [number, number] = [145.0070, -37.71677];
 
 type RouteResponse = {
   routes: Array<{
@@ -55,6 +53,8 @@ const routeOutlineLayer: LayerProps = {
 };
 
 export default function S5JourneyActive() {
+  const destination = useAppSelector((state) => state.location.destination);
+
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
     longitude: number;
@@ -64,6 +64,7 @@ export default function S5JourneyActive() {
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>(
     []
   );
+
   const [routeInfo, setRouteInfo] = useState<{
     distance: number;
     duration: number;
@@ -74,10 +75,9 @@ export default function S5JourneyActive() {
     longitude: 144.9631,
     zoom: 16,
     bearing: 0,
-    pitch: 45, // Slight tilt for navigation view
+    pitch: 45,
   });
 
-  // Fetch route from Mapbox Directions API
   const fetchRoute = useCallback(
     async (start: [number, number], end: [number, number]) => {
       if (!MAPBOX_TOKEN) return;
@@ -88,9 +88,12 @@ export default function S5JourneyActive() {
           { method: "GET" }
         );
 
+        if (!query.ok) {
+          throw new Error(`Directions request failed: ${query.status}`);
+        }
+
         const json: RouteResponse = await query.json();
-        
-        console.log(json);
+        console.log("Directions API response:", json);
 
         if (json.routes && json.routes.length > 0) {
           const route = json.routes[0];
@@ -99,10 +102,15 @@ export default function S5JourneyActive() {
             distance: route.distance,
             duration: route.duration,
           });
+
           console.log("Route fetched:", {
             distance: `${(route.distance / 1000).toFixed(2)} km`,
             duration: `${Math.round(route.duration / 60)} min`,
           });
+        } else {
+          console.warn("No routes found.");
+          setRouteCoordinates([]);
+          setRouteInfo(null);
         }
       } catch (error) {
         console.error("Error fetching route:", error);
@@ -111,7 +119,6 @@ export default function S5JourneyActive() {
     []
   );
 
-  // Get user's current location and fetch route
   useEffect(() => {
     if (!navigator.geolocation) {
       console.warn("Geolocation is not supported by this browser.");
@@ -123,22 +130,27 @@ export default function S5JourneyActive() {
         const coords = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          heading: position.coords.heading, // Device direction
+          heading: position.coords.heading,
         };
 
         setUserLocation(coords);
 
-        // Center map on user location
         setViewState((prev) => ({
           ...prev,
           latitude: coords.latitude,
           longitude: coords.longitude,
-          bearing: coords.heading ?? prev.bearing, // Rotate map with user direction
+          bearing: coords.heading ?? prev.bearing,
         }));
 
-        // Fetch route on first location update
-        if (routeCoordinates.length === 0) {
-          fetchRoute([coords.longitude, coords.latitude], DESTINATION);
+        if (
+          routeCoordinates.length === 0 &&
+          destination?.lat != null &&
+          destination?.long != null
+        ) {
+          fetchRoute(
+            [coords.longitude, coords.latitude],
+            [destination.long, destination.lat]
+          );
         }
       },
       (error) => {
@@ -154,29 +166,32 @@ export default function S5JourneyActive() {
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [fetchRoute, routeCoordinates.length]);
+  }, [fetchRoute, routeCoordinates.length, destination?.lat, destination?.long]);
 
-  // Create GeoJSON for the route
   const routeGeoJson = useMemo(
     () => ({
       type: "FeatureCollection" as const,
-      features: [
-        {
-          type: "Feature" as const,
-          properties: {},
-          geometry: {
-            type: "LineString" as const,
-            coordinates: routeCoordinates,
-          },
-        },
-      ],
+      features:
+        routeCoordinates.length > 0
+          ? [
+              {
+                type: "Feature" as const,
+                properties: {},
+                geometry: {
+                  type: "LineString" as const,
+                  coordinates: routeCoordinates,
+                },
+              },
+            ]
+          : [],
     }),
     [routeCoordinates]
   );
 
-  // Calculate ETA and distance remaining
   const remainingInfo = useMemo(() => {
-    if (!routeInfo) return { eta: "8 min", distance: "0.6 km" };
+    if (!routeInfo) {
+      return { eta: "—", distance: "—" };
+    }
 
     const etaMinutes = Math.round(routeInfo.duration / 60);
     const distanceKm = (routeInfo.distance / 1000).toFixed(1);
@@ -187,18 +202,23 @@ export default function S5JourneyActive() {
     };
   }, [routeInfo]);
 
-  // Handle geolocation updates from GeolocateControl
   const handleGeolocate = useCallback((e: any) => {
     const coords = {
       latitude: e.coords.latitude,
       longitude: e.coords.longitude,
       heading: e.coords.heading,
     };
+
     setUserLocation(coords);
     console.log("User location updated:", coords);
   }, []);
 
-  const endPoint = routeCoordinates[routeCoordinates.length - 1];
+  const endPoint =
+    destination?.lat != null && destination?.long != null
+      ? ([destination.long, destination.lat] as [number, number])
+      : routeCoordinates.length > 0
+      ? routeCoordinates[routeCoordinates.length - 1]
+      : null;
 
   return (
     <PhoneFrame withNav>
@@ -217,7 +237,6 @@ export default function S5JourneyActive() {
         </div>
       </div>
 
-      {/* MAPBOX MAP */}
       <div
         className="map-wrap"
         style={{
@@ -236,7 +255,6 @@ export default function S5JourneyActive() {
             mapStyle="mapbox://styles/mapbox/streets-v12"
             style={{ width: "100%", height: "100%" }}
           >
-            {/* Route outline (below main route) */}
             {routeCoordinates.length > 0 && (
               <>
                 <Source
@@ -247,14 +265,12 @@ export default function S5JourneyActive() {
                   <Layer {...routeOutlineLayer} />
                 </Source>
 
-                {/* Main route */}
                 <Source id="route-source" type="geojson" data={routeGeoJson}>
                   <Layer {...routeLayer} />
                 </Source>
               </>
             )}
 
-            {/* Destination marker */}
             {endPoint && (
               <Marker
                 longitude={endPoint[0]}
@@ -280,7 +296,6 @@ export default function S5JourneyActive() {
               </Marker>
             )}
 
-            {/* User location marker - directional arrow */}
             {userLocation && (
               <Marker
                 latitude={userLocation.latitude}
@@ -288,62 +303,67 @@ export default function S5JourneyActive() {
                 anchor="center"
                 rotation={userLocation.heading ?? 0}
               >
-                {/* Directional navigation arrow */}
                 <div
                   style={{
-                    width: 0,
-                    height: 0,
-                    borderLeft: "12px solid transparent",
-                    borderRight: "12px solid transparent",
-                    borderBottom: "24px solid #2563EB",
-                    filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
-                    transform: "translateY(-50%)",
+                    position: "relative",
+                    width: 24,
+                    height: 24,
+                    transform: "translateY(-12px)",
                   }}
                 >
-                  {/* White stroke for visibility */}
                   <div
                     style={{
                       position: "absolute",
-                      top: "2px",
-                      left: "-10px",
+                      top: 0,
+                      left: 0,
                       width: 0,
                       height: 0,
-                      borderLeft: "10px solid transparent",
-                      borderRight: "10px solid transparent",
-                      borderBottom: "20px solid white",
+                      borderLeft: "12px solid transparent",
+                      borderRight: "12px solid transparent",
+                      borderBottom: "24px solid #2563EB",
+                      filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "8px",
+                      left: "4px",
+                      width: 0,
+                      height: 0,
+                      borderLeft: "8px solid transparent",
+                      borderRight: "8px solid transparent",
+                      borderBottom: "16px solid white",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "18px",
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: 16,
+                      height: 16,
+                      borderRadius: "50%",
+                      backgroundColor: "#2563EB",
+                      border: "3px solid white",
+                      boxShadow: "0 0 0 4px rgba(37, 99, 235, 0.3)",
+                      animation: "pulse 2s ease-in-out infinite",
                     }}
                   />
                 </div>
-                {/* Blue pulsing dot at base */}
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: 16,
-                    height: 16,
-                    borderRadius: "50%",
-                    backgroundColor: "#2563EB",
-                    border: "3px solid white",
-                    boxShadow: "0 0 0 4px rgba(37, 99, 235, 0.3)",
-                    animation: "pulse 2s ease-in-out infinite",
-                  }}
-                />
               </Marker>
             )}
 
-            {/* Geolocate Control - tracks user location */}
             <GeolocateControl
               position="top-right"
               positionOptions={{ enableHighAccuracy: true }}
               trackUserLocation={true}
               showUserHeading={true}
-              showUserLocation={false} // We're using custom marker
+              showUserLocation={false}
               onGeolocate={handleGeolocate}
             />
 
-            {/* Navigation Control - zoom buttons */}
             <NavigationControl position="top-right" showCompass={true} />
           </Map>
         ) : (
@@ -369,7 +389,6 @@ export default function S5JourneyActive() {
         )}
       </div>
 
-      {/* HUD overlay */}
       <div className="hud-row">
         <div className="hud-card">
           <div className="hud-lbl">ETA</div>
@@ -396,7 +415,6 @@ export default function S5JourneyActive() {
         </div>
       </div>
 
-      {/* Bottom sheet */}
       <div className="bottom-sheet">
         <div className="drag-handle" />
 
@@ -478,7 +496,6 @@ export default function S5JourneyActive() {
         </div>
       </div>
 
-      {/* Add pulse animation */}
       <style>{`
         @keyframes pulse {
           0%, 100% {
@@ -488,7 +505,7 @@ export default function S5JourneyActive() {
             box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.1);
           }
         }
-        
+
         @keyframes blink {
           0%, 100% {
             opacity: 1;

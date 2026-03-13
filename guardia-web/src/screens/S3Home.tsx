@@ -39,12 +39,6 @@ export default function S3Home() {
           }
         }}
       />
-      <div className="location-state-card">
-        <div><strong>Origin:</strong> {origin?.address ?? "Not set"}</div>
-        <div>{origin?.lat != null && origin?.long != null ? `${origin.lat}, ${origin.long}` : "No coordinates"}</div>
-        <div style={{ marginTop: 6 }}><strong>Destination:</strong> {destination?.address ?? "Not set"}</div>
-        <div>{destination?.lat != null && destination?.long != null ? `${destination.lat}, ${destination.long}` : "No coordinates"}</div>
-      </div>
       <div className="home-scroll">
         <div className="section-head">Quick destinations</div>
         <div className="chips-row">
