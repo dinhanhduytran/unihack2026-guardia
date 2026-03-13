@@ -5,8 +5,8 @@ import PhoneFrame from "../components/layout/PhoneFrame";
 type PermissionStateLabel = "idle" | "granted" | "denied" | "unsupported";
 
 export default function S2Permissions() {
-  const [, setLocationStatus] = useState<PermissionStateLabel>("idle");
-  const [, setMicStatus] = useState<PermissionStateLabel>("idle");
+  const [locationStatus, setLocationStatus] = useState<PermissionStateLabel>("idle");
+  const [micStatus, setMicStatus] = useState<PermissionStateLabel>("idle");
 
   const requestLocation = () => {
     if (!("geolocation" in navigator)) {
@@ -45,6 +45,10 @@ export default function S2Permissions() {
     }
   };
 
+  const canGoNext = locationStatus === "granted" && micStatus === "granted";
+  const locationButtonLabel = locationStatus === "granted" ? "Granted" : "Allow Location";
+  const micButtonLabel = micStatus === "granted" ? "Granted" : "Allow Mic";
+
   return (
     <PhoneFrame>
       <div style={{ height: 52 }} />
@@ -71,8 +75,12 @@ export default function S2Permissions() {
             <div className="perm-title">Location Access</div>
             <div className="perm-desc">So we can track your route and alert contacts</div>
           </div>
-          <button className="btn-sm-coral" onClick={requestLocation}>
-            Allow Location
+          <button
+            className="btn-sm-coral"
+            onClick={requestLocation}
+            style={locationStatus === "granted" ? { background: "var(--teal)" } : undefined}
+          >
+            {locationButtonLabel}
           </button>
         </div>
         <div className="perm-card">
@@ -81,15 +89,19 @@ export default function S2Permissions() {
             <div className="perm-title">Voice Commands</div>
             <div className="perm-desc">Say 'Help me' or 'I'm home safe' hands-free</div>
           </div>
-          <button className="btn-sm-coral" onClick={requestMic}>
-            Allow Mic
+          <button
+            className="btn-sm-coral"
+            onClick={requestMic}
+            style={micStatus === "granted" ? { background: "var(--teal)" } : undefined}
+          >
+            {micButtonLabel}
           </button>
         </div>
-        <Link to="/home">
-          <button style={{ background: "none", border: "none", color: "var(--text-muted)", fontSize: 13, marginTop: 16 }}>
-            Skip for now
-          </button>
-        </Link>
+        {canGoNext ? (
+          <Link to="/home" style={{ width: "100%", marginTop: 16 }}>
+            <button className="btn-primary">Next →</button>
+          </Link>
+        ) : null}
         <div className="progress-dots">
           <div className="pdot" />
           <div className="pdot active" />

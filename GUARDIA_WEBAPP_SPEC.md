@@ -160,7 +160,9 @@ Typography:
 ### S2 Permissions
 - Two permission cards: Location and Mic.
 - CTA buttons inside card rows.
-- "Skip for now" ghost/tertiary style.
+- Remove the "Skip for now" action from this screen.
+- After both permissions are granted (`location = granted` and `mic = granted`), show a primary `Next` button.
+- `Next` action: route to `/home` (S3 Home).
 
 ### S3 Home
 - Greeting header + avatar.
@@ -214,6 +216,7 @@ Use a simple global store (Zustand/Redux/context):
 Transition examples:
 
 - S0 "Get Started" -> route `/onboarding`
+- S2 both permissions granted -> show `Next` -> route `/home`
 - S4 "Start Journey" -> set `journey.status = active` -> route `/journey`
 - Incident zone reached -> route `/companion`
 - Voice trigger "Help me" -> route `/emergency`
@@ -242,6 +245,8 @@ Mirror these keyframes from `guardia-screens.html`:
 
 - All 9 screens exist (S0-S8) and match prompt look/feel.
 - App entry at `/` shows S0 Welcome and `Get Started` navigates to `/onboarding` (S1).
+- On S2, `Next` appears only after Location and Mic permissions are both granted.
+- Pressing S2 `Next` navigates to `/home` (S3).
 - Mobile-first layout validated at `390x844`.
 - Bottom nav appears only on S3-S6.
 - S4/S5 bottom sheets and route card selection work.
