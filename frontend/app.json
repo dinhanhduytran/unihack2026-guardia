@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "frontend",
+    "name": "safe-route-app",
     "slug": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Safety Map uses your location to show nearby safety alerts and routes."
+      }
     },
     "android": {
       "adaptiveIcon": {
