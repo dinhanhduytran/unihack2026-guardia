@@ -298,11 +298,7 @@ export default function S4MapPreJourney() {
         {mapboxToken ? (
           <Map
             mapboxAccessToken={mapboxToken}
-            initialViewState={{
-              latitude: mapCenter.latitude,
-              longitude: mapCenter.longitude,
-              zoom: 15,
-            }}
+  
             mapStyle="mapbox://styles/mapbox/light-v11"
             style={{ width: "100%", height: "100%" }}
           >
