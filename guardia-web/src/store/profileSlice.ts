@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import { readStoredProfile } from "./persistence";
 
 type ProfileState = {
   userName: string;
@@ -6,10 +7,11 @@ type ProfileState = {
   emergencyContactPhone: string;
 };
 
+const initialProfile = readStoredProfile();
 const initialState: ProfileState = {
-  userName: "",
-  emergencyContactName: "",
-  emergencyContactPhone: "",
+  userName: initialProfile.userName,
+  emergencyContactName: initialProfile.emergencyContactName,
+  emergencyContactPhone: initialProfile.emergencyContactPhone,
 };
 
 const profileSlice = createSlice({

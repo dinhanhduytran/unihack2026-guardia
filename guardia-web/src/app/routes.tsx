@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { Navigate, createBrowserRouter } from "react-router-dom";
 import S0Welcome from "../screens/S0Welcome";
 import S1Onboarding from "../screens/S1Onboarding";
 import S2Permissions from "../screens/S2Permissions";
@@ -9,9 +9,10 @@ import S6Companion from "../screens/S6Companion";
 import S7AICall from "../screens/S7AICall";
 import S8Emergency from "../screens/S8Emergency";
 import Profile from "../screens/Profile";
+import { hasCompletedSetupFromStorage } from "../store/persistence";
 
 export const appRouter = createBrowserRouter([
-  { path: "/", element: <S0Welcome /> },
+  { path: "/", element: hasCompletedSetupFromStorage() ? <Navigate to="/home" replace /> : <S0Welcome /> },
   { path: "/onboarding", element: <S1Onboarding /> },
   { path: "/permissions", element: <S2Permissions /> },
   { path: "/home", element: <S3Home /> },

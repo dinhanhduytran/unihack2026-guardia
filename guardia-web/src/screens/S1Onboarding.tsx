@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
 import { useAppDispatch } from "../store/hooks";
 import { setOnboardingProfile } from "../store/profileSlice";
+import { saveOnboardingProfile } from "../store/persistence";
 
 export default function S1Onboarding() {
   const dispatch = useAppDispatch();
@@ -28,6 +29,11 @@ export default function S1Onboarding() {
         emergencyContactPhone: emergencyContactPhone.trim(),
       }),
     );
+    saveOnboardingProfile({
+      userName: userName.trim(),
+      emergencyContactName: emergencyContactName.trim(),
+      emergencyContactPhone: emergencyContactPhone.trim(),
+    });
     navigate("/permissions");
   };
 

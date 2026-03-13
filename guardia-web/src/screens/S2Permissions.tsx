@@ -1,16 +1,18 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
+import { readPermissionStatus, savePermissionStatus } from "../store/persistence";
 
 type PermissionStateLabel = "idle" | "granted" | "denied" | "unsupported";
 
 export default function S2Permissions() {
-  const [locationStatus, setLocationStatus] = useState<PermissionStateLabel>("idle");
-  const [micStatus, setMicStatus] = useState<PermissionStateLabel>("idle");
+  const [locationStatus, setLocationStatus] = useState<PermissionStateLabel>(readPermissionStatus("location"));
+  const [micStatus, setMicStatus] = useState<PermissionStateLabel>(readPermissionStatus("mic"));
 
   const requestLocation = () => {
     if (!("geolocation" in navigator)) {
       setLocationStatus("unsupported");
+      savePermissionStatus("location", "unsupported");
       console.log("[S2Permissions] Location permission unsupported");
       return;
     }
@@ -18,10 +20,12 @@ export default function S2Permissions() {
     navigator.geolocation.getCurrentPosition(
       () => {
         setLocationStatus("granted");
+        savePermissionStatus("location", "granted");
         console.log("[S2Permissions] Location permission granted");
       },
       (error) => {
         setLocationStatus("denied");
+        savePermissionStatus("location", "denied");
         console.log("[S2Permissions] Location permission denied:", error.message);
       },
     );
@@ -30,6 +34,7 @@ export default function S2Permissions() {
   const requestMic = async () => {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setMicStatus("unsupported");
+      savePermissionStatus("mic", "unsupported");
       console.log("[S2Permissions] Microphone permission unsupported");
       return;
     }
@@ -38,9 +43,11 @@ export default function S2Permissions() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => track.stop());
       setMicStatus("granted");
+      savePermissionStatus("mic", "granted");
       console.log("[S2Permissions] Microphone permission granted");
     } catch (error) {
       setMicStatus("denied");
+      savePermissionStatus("mic", "denied");
       console.log("[S2Permissions] Microphone permission denied:", error);
     }
   };

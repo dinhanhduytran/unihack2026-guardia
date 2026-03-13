@@ -2,6 +2,7 @@ import { useState } from "react";
 import PhoneFrame from "../components/layout/PhoneFrame";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { updateEmergencyContact } from "../store/profileSlice";
+import { saveEmergencyContact } from "../store/persistence";
 
 export default function Profile() {
   const dispatch = useAppDispatch();
@@ -20,6 +21,10 @@ export default function Profile() {
         emergencyContactPhone: emergencyNumber.trim(),
       }),
     );
+    saveEmergencyContact({
+      emergencyContactName: emergencyName.trim(),
+      emergencyContactPhone: emergencyNumber.trim(),
+    });
     setSaved(true);
     console.log("[Profile] Emergency contact updated:", {
       emergencyContactName: emergencyName,
