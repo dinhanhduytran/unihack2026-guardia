@@ -8,6 +8,7 @@ import Map, {
   type LayerProps,
 } from "react-map-gl/mapbox";
 import StreamingAvatar, { AvatarQuality, StreamingEvents } from "@heygen/streaming-avatar";
+import { useNavigate } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
@@ -77,8 +78,10 @@ const routeOutlineLayer: LayerProps = {
 };
 
 export default function S5JourneyActive() {
+  const navigate = useNavigate();
   const destination = useAppSelector((state) => state.location.destination);
   const storedRoute = useAppSelector((state) => state.location.selectedRoute);
+  const emergencyContactPhone = useAppSelector((state) => state.profile.emergencyContactPhone);
 
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
@@ -313,6 +316,27 @@ export default function S5JourneyActive() {
     setUserLocation(coords);
     console.log("User location updated:", coords);
   }, []);
+  const goHome = useCallback(() => {
+    navigate("/home");
+  }, [navigate]);
+
+  const handleEmergencyMicCall = useCallback(() => {
+    const trimmedPhone = emergencyContactPhone.trim();
+
+    if (!trimmedPhone) {
+      window.alert("No emergency contact number found. Please update it in your profile.");
+      return;
+    }
+
+    const digitsOnly = trimmedPhone.replace(/\D/g, "");
+    if (!digitsOnly) {
+      window.alert("Emergency contact number is invalid. Please update it in your profile.");
+      return;
+    }
+
+    const dialNumber = trimmedPhone.startsWith("+") ? `+${digitsOnly}` : digitsOnly;
+    window.location.href = `tel:${dialNumber}`;
+  }, [emergencyContactPhone]);
 
   const endPoint =
     destination?.lat != null && destination?.long != null
@@ -472,7 +496,7 @@ export default function S5JourneyActive() {
                 </div>
               </Marker>
             )}
-
+{/* 
             <GeolocateControl
               position="top-right"
               positionOptions={{ enableHighAccuracy: true }}
@@ -480,9 +504,9 @@ export default function S5JourneyActive() {
               showUserHeading={true}
               showUserLocation={false}
               onGeolocate={handleGeolocate}
-            />
+            /> */}
 
-            <NavigationControl position="top-right" showCompass={true} />
+            {/* <NavigationControl position="top-right" showCompass={true} /> */}
           </Map>
         ) : (
           <div
@@ -569,11 +593,56 @@ export default function S5JourneyActive() {
         </div>
       )}
 
-      <div className="hud-row">
-        <div className="hud-card">
-          <div className="hud-lbl">ETA</div>
-          <div className="hud-val">{remainingInfo.eta}</div>
-          <div className="hud-sub">{remainingInfo.distance} left</div>
+      <div className="hud-row" style={{ alignItems: "flex-start" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div className="hud-card">
+            <div className="hud-lbl">ETA</div>
+            <div className="hud-val">{remainingInfo.eta}</div>
+            <div className="hud-sub">{remainingInfo.distance} left</div>
+          </div>
+          <button
+            type="button"
+            aria-label="Call emergency contact"
+            onClick={handleEmergencyMicCall}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              border: "1.5px solid rgba(255,255,255,0.8)",
+              background: "rgba(37, 99, 235, 0.95)",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 8px 22px rgba(37, 99, 235, 0.35)",
+              cursor: "pointer",
+              marginLeft: 6,
+            }}
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 3.5a3 3 0 0 1 3 3v4.5a3 3 0 0 1-6 0V6.5a3 3 0 0 1 3-3Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M6.5 10.5v.5A5.5 5.5 0 0 0 12 16.5a5.5 5.5 0 0 0 5.5-5.5v-.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M12 16.5V20M9 20h6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         </div>
 
         <div className="hud-card">
@@ -673,6 +742,7 @@ export default function S5JourneyActive() {
           <button
             className="btn-ghost-teal"
             style={{ height: 48, fontSize: 13, borderRadius: 12 }}
+            onClick={goHome}
           >
             ✅ Safe
           </button>
@@ -680,8 +750,9 @@ export default function S5JourneyActive() {
           <button
             className="btn-primary"
             style={{ height: 48, fontSize: 13, borderRadius: 12, background: "linear-gradient(135deg,#E8735A,#c0392b)" }}
+            onClick={goHome}
           >
-            🚨 SOS
+            Exit
           </button>
         </div>
       </div>
