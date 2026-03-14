@@ -13,10 +13,33 @@ export default function S3Home() {
     <PhoneFrame withNav>
       <div className="home-header">
         <div>
-          <div className="greeting-small">Good evening,</div>
-          <div className="greeting-name">{displayName} 👋</div>
+          <div className="greeting-small">Good evening 👋</div>
+          <div className="greeting-name">{displayName}</div>
         </div>
-        <div className="avatar-lg">{avatarInitial}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              border: "none",
+              background: "var(--surface)",
+              boxShadow: "0 2px 10px var(--shadow)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-secondary)",
+              cursor: "pointer",
+            }}
+            aria-label="Notifications"
+          >
+            <svg width="16" height="18" viewBox="0 0 16 18" fill="none">
+              <path d="M8 0a1.3 1.3 0 0 0-1.3 1.3v.55A5.5 5.5 0 0 0 2.5 7.3v3.7L1 12.5V13h14v-.5L13.5 11V7.3A5.5 5.5 0 0 0 9.3 1.85V1.3A1.3 1.3 0 0 0 8 0z" fill="currentColor"/>
+              <path d="M6.2 15a1.8 1.8 0 0 0 3.6 0H6.2z" fill="currentColor"/>
+            </svg>
+          </button>
+          <div className="avatar-lg">{avatarInitial}</div>
+        </div>
       </div>
       <PlaceSearchInput
         kind="destination"

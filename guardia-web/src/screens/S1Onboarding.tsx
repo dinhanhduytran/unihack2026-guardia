@@ -45,6 +45,7 @@ export default function S1Onboarding() {
         </div>
         <div className="s1-brand">guardia</div>
         <div className="s1-tagline">Walk home fearlessly.</div>
+        <div className="s1-tagline" style={{ color: "var(--text-muted)", fontSize: 13 }}>Your safety companion</div>
       </div>
       <div className="s1-sheet">
         <h2>Let&apos;s get you set up</h2>

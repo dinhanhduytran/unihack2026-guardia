@@ -68,10 +68,10 @@ export default function S2Permissions() {
         </div>
       </div>
       <div style={{ padding: "20px 28px 0", textAlign: "center" }}>
-        <h1 style={{ fontFamily: "Lora, serif", fontStyle: "italic", fontSize: 26, color: "var(--text-primary)", marginBottom: 6 }}>
+        <h1 style={{ fontFamily: "Nunito, sans-serif", fontWeight: 900, fontSize: 26, color: "var(--text-primary)", marginBottom: 6, letterSpacing: "-0.3px" }}>
           Two quick permissions
         </h1>
-        <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 20 }}>
+        <p style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 20, lineHeight: 1.55 }}>
           Guardia needs these to keep you safe.
         </p>
       </div>

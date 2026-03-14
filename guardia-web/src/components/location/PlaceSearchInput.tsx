@@ -6,6 +6,24 @@ import {
   type SavedLocation,
 } from "../../store/locationSlice";
 
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
 type Props = {
   kind: "origin" | "destination";
   placeholder: string;
@@ -14,6 +32,8 @@ type Props = {
   iconRight?: string;
   onLocationSelected?: (location: SavedLocation) => void;
 };
+
+// iconLeft / iconRight props are kept for API compatibility but SVG icons are always rendered
 
 const SEARCH_DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
@@ -190,7 +210,9 @@ export default function PlaceSearchInput({
   return (
     <div className="places-wrap">
       <div className={className}>
-        <span style={{ fontSize: 16 }}>{iconLeft}</span>
+        <span style={{ color: "var(--coral)", display: "flex", alignItems: "center", flexShrink: 0 }}>
+          <PinIcon />
+        </span>
         <input
           className="places-input"
           placeholder={placeholder}
@@ -200,7 +222,9 @@ export default function PlaceSearchInput({
           }}
           onBlur={saveManualInput}
         />
-        <span style={{ fontSize: 16, color: "var(--text-muted)" }}>{iconRight}</span>
+        <span style={{ color: "var(--text-muted)", display: "flex", alignItems: "center", flexShrink: 0 }}>
+          <SearchIcon />
+        </span>
       </div>
       {kind === "origin" ? (
         <button className="use-current-btn" onClick={useCurrentLocation} type="button">

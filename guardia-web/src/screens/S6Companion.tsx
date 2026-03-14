@@ -105,12 +105,12 @@ export default function S6Companion() {
                 <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>Connecting...</div>
               )}
               {status === "error" && (
-                <div style={{ color: "#E8735A", fontSize: 13 }}>Connection failed. Try again.</div>
+                <div style={{ color: "#FF6B6B", fontSize: 13 }}>Connection failed. Try again.</div>
               )}
               {(status === "idle" || status === "error") && (
                 <button
                   onClick={() => void startSession()}
-                  style={{ marginTop: 8, padding: "10px 28px", borderRadius: 999, background: "#E8735A", color: "#fff", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}
+                  style={{ marginTop: 8, padding: "10px 28px", borderRadius: 999, background: "#FF6B6B", color: "#fff", fontWeight: 700, fontSize: 14, border: "none", cursor: "pointer" }}
                 >
                   Start Video Call
                 </button>
@@ -148,7 +148,7 @@ export default function S6Companion() {
                 </button>
                 <button
                   onClick={() => void stopSession()}
-                  style={{ padding: "8px 16px", borderRadius: 999, background: "rgba(232,115,90,0.85)", color: "#fff", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer" }}
+                  style={{ padding: "8px 16px", borderRadius: 999, background: "rgba(255,107,107,0.85)", color: "#fff", fontSize: 12, fontWeight: 700, border: "none", cursor: "pointer" }}
                 >
                   End
                 </button>

@@ -52,7 +52,7 @@ const selectedRouteLayer: LayerProps = {
   id: "selected-route",
   type: "line",
   paint: {
-    "line-color": "#E8735A",
+    "line-color": "#FF6B6B",
     "line-width": 6,
     "line-opacity": 0.95,
   },
@@ -78,7 +78,7 @@ const incidentZoneFillLayer: LayerProps = {
   id: "incident-zone-fill",
   type: "fill",
   paint: {
-    "fill-color": "#E8735A",
+    "fill-color": "#FF6B6B",
     "fill-opacity": 0.14,
   },
 };
@@ -87,7 +87,7 @@ const incidentZoneStrokeLayer: LayerProps = {
   id: "incident-zone-stroke",
   type: "line",
   paint: {
-    "line-color": "#E8735A",
+    "line-color": "#FF6B6B",
     "line-opacity": 0.35,
     "line-width": 1.5,
   },
@@ -668,8 +668,8 @@ const initialViewState = useMemo(() => {
         }
 
         .custom-route-card.sel {
-          border-color: rgba(232, 115, 90, 0.45);
-          box-shadow: 0 8px 18px rgba(232, 115, 90, 0.12);
+          border-color: rgba(255, 107, 107, 0.45);
+          box-shadow: 0 8px 18px rgba(255, 107, 107, 0.12);
           transform: translateY(-1px);
         }
 
