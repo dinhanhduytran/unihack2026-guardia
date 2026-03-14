@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
 import PlaceSearchInput from "../components/location/PlaceSearchInput";
 import MelbourneTime from "../components/layout/MelbourneTime";
@@ -11,9 +11,10 @@ import Map, {
   Source,
   type LayerProps,
 } from "react-map-gl/mapbox";
+import { Link } from "react-router-dom";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
-
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+if (!BACKEND_URL) throw new Error("VITE_BACKEND_URL is not set in .env");
 type BackendPoint = {
   geometry: { coordinates: [number, number]; type: "Point" };
   distance: number;
@@ -133,54 +134,9 @@ function getIncidentClassName(radiusMeters: number) {
   return "incident-low";
 }
 
-function encodePcmToWav(samples: Float32Array, sampleRate: number): Blob {
-  const dataLen = samples.length * 2;
-  const buf = new ArrayBuffer(44 + dataLen);
-  const v = new DataView(buf);
-  const str = (off: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(off + i, s.charCodeAt(i)); };
-  str(0, "RIFF"); v.setUint32(4, 36 + dataLen, true);
-  str(8, "WAVE"); str(12, "fmt ");
-  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
-  v.setUint32(24, sampleRate, true); v.setUint32(28, sampleRate * 2, true);
-  v.setUint16(32, 2, true); v.setUint16(34, 16, true);
-  str(36, "data"); v.setUint32(40, dataLen, true);
-  let off = 44;
-  for (const s of samples) {
-    const c = Math.max(-1, Math.min(1, s));
-    v.setInt16(off, c < 0 ? c * 0x8000 : c * 0x7fff, true);
-    off += 2;
-  }
-  return new Blob([buf], { type: "audio/wav" });
-}
-
-function recordChunk(stream: MediaStream, durationMs: number): Promise<Blob> {
-  return new Promise((resolve) => {
-    const chunks: Blob[] = [];
-    const recorder = new MediaRecorder(stream);
-    recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-    recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType }));
-    recorder.start();
-    setTimeout(() => { recorder.stop(); }, durationMs);
-  });
-}
-
-async function toWav(blob: Blob): Promise<Blob> {
-  const ctx = new AudioContext();
-  const audio = await ctx.decodeAudioData(await blob.arrayBuffer());
-  await ctx.close();
-  return encodePcmToWav(audio.getChannelData(0), audio.sampleRate);
-}
-
-declare global {
-  interface Window {
-    __guardiaVoiceStream?: MediaStream;
-    __guardiaVoiceActive?: boolean;
-  }
-}
-
 
 export default function S4MapPreJourney() {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const origin = useAppSelector((state) => state.location.origin);
   const destination = useAppSelector((state) => state.location.destination);
@@ -190,53 +146,14 @@ export default function S4MapPreJourney() {
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [routesLoading, setRoutesLoading] = useState(false);
   const [routesError, setRoutesError] = useState<string | null>(null);
-  const [voiceStarting, setVoiceStarting] = useState(false);
-
-  const startJourneyVoiceDetect = async () => {
-    if (!selectedRoute || voiceStarting) return;
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      navigate("/journey");
-      return;
-    }
-
-    setVoiceStarting(true);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      window.__guardiaVoiceStream = stream;
-      window.__guardiaVoiceActive = true;
-
-      void (async () => {
-        while (window.__guardiaVoiceActive) {
-          try {
-            const rawBlob = await recordChunk(stream, 10000);
-   
-            const form = new FormData();
-            form.append("audio", rawBlob, "chunk.webm");
-            const res = await fetch(`${BACKEND_URL}/voice_detect`, { method: "POST", body: form });
-            if (res.ok) {
-              const data = (await res.json()) as { detected?: boolean; transcript?: string };
-              console.log("[voice_detect]", data);
-            }
-          } catch (err) {
-            console.error("[voice_detect] chunk error:", err);
-          }
-        }
-      })();
-    } catch (err) {
-      console.error("[voice_detect] mic error:", err);
-    } finally {
-      setVoiceStarting(false);
-      navigate("/journey");
-    }
-  };
+  // const [voiceStarting, setVoiceStarting] = useState(false);
 
   useEffect(() => {
     if (origin?.lat != null && origin?.long != null) {
       return;
     }
 
-    if (!navigator.geolocation) {
+    if (!navigator.geolocation) { 
       return;
     }
 
@@ -285,7 +202,6 @@ export default function S4MapPreJourney() {
         setRoutesError(null);
 
         console.log (origin, destination);
-
         const response = await fetch(
           `${BACKEND_URL}/routes?origin_lat=${origin.lat}&origin_lng=${origin.long}&dest_lat=${destination.lat}&dest_lng=${destination.long}`,
           { signal: controller.signal },
@@ -685,15 +601,20 @@ const initialViewState = useMemo(() => {
           </div>
 
           <div className="custom-drawer-footer">
-            <button
+            {/* <button
               className="btn-primary custom-drawer-btn"
-              disabled={!selectedRoute || voiceStarting}
-              onClick={() => {
-                void startJourneyVoiceDetect();
-              }}
+              disabled={!selectedRoute}
+              onClick={() => navigate("/S5JourneyActive")}
+
             >
-              {voiceStarting ? "Starting mic..." : "Start Journey →"}
-            </button>
+              {"Start Journey →"}
+            </button> */}
+
+            <Link to = "/journey" style = {{ textDecoration: "none" }}>
+              <button className="btn-primary custom-drawer-btn">
+                Start Journey →
+              </button>
+            </Link>
           </div>
         </div>
       </div>
