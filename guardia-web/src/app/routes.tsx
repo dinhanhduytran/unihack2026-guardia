@@ -7,7 +7,6 @@ import S4MapPreJourney from "../screens/S4MapPreJourney";
 import S5JourneyActive from "../screens/S5JourneyActive";
 import S6Companion from "../screens/S6Companion";
 import S7AICall from "../screens/S7AICall";
-import S8Emergency from "../screens/S8Emergency";
 import Profile from "../screens/Profile";
 import { hasCompletedSetupFromStorage } from "../store/persistence";
 
@@ -20,6 +19,5 @@ export const appRouter = createBrowserRouter([
   { path: "/journey", element: <S5JourneyActive /> },
   { path: "/companion", element: <S6Companion /> },
   { path: "/ai-call", element: <S7AICall /> },
-  { path: "/emergency", element: <S8Emergency /> },
   { path: "/profile", element: <Profile /> },
 ]);

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents,
@@ -90,7 +89,7 @@ export default function S6Companion() {
     <PhoneFrame withNav>
       <div className="companion-body" style={{ padding: 0, position: "relative" }}>
         {/* Video area */}
-        <div style={{ width: "100%", aspectRatio: "9/14", background: "#111", position: "relative", overflow: "hidden" }}>
+        <div style={{ width: "100%", aspectRatio: "9/16", background: "#111", position: "relative", overflow: "hidden" }}>
           <video
             ref={videoRef}
             autoPlay
@@ -165,14 +164,11 @@ export default function S6Companion() {
         )}
       </div>
 
-      <div className="companion-footer">
+      {/* <div className="companion-footer">
         <p style={{ textAlign: "center", fontSize: 11, color: "var(--text-muted)" }}>
           Say &apos;Help me&apos; anytime to trigger emergency
         </p>
-        <Link to="/emergency" style={{ textDecoration: "none" }}>
-          <button className="btn-ghost" style={{ color: "#E8735A" }}>Emergency</button>
-        </Link>
-      </div>
+      </div> */}
     </PhoneFrame>
   );
 }
