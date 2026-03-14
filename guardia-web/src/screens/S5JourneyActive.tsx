@@ -8,7 +8,6 @@ import Map, {
   type LayerProps,
 } from "react-map-gl/mapbox";
 import PhoneFrame from "../components/layout/PhoneFrame";
-import MelbourneTime from "../components/layout/MelbourneTime";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useAppSelector } from "../store/hooks";
 
@@ -221,21 +220,6 @@ export default function S5JourneyActive() {
 
   return (
     <PhoneFrame withNav>
-      <div className="status-bar">
-        <MelbourneTime className="status-time" />
-        <div className="status-icons">
-          <div className="signal-bars">
-            <span />
-            <span />
-            <span />
-          </div>
-          <span className="wifi-icon">▲</span>
-          <div className="battery">
-            <div className="battery-fill" />
-          </div>
-        </div>
-      </div>
-
       <div
         className="map-wrap"
         style={{

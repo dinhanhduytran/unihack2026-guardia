@@ -6,7 +6,6 @@ import StreamingAvatar, {
   TaskType,
 } from "@heygen/streaming-avatar";
 import PhoneFrame from "../components/layout/PhoneFrame";
-import MelbourneTime from "../components/layout/MelbourneTime";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
 
@@ -87,15 +86,6 @@ export default function S6Companion() {
 
   return (
     <PhoneFrame withNav>
-      <div className="status-bar">
-        <MelbourneTime className="status-time" />
-        <div className="status-icons">
-          <div className="signal-bars"><span /><span /><span /></div>
-          <span className="wifi-icon">▲</span>
-          <div className="battery"><div className="battery-fill" /></div>
-        </div>
-      </div>
-
       <div className="companion-body" style={{ padding: 0, position: "relative" }}>
         {/* Video area */}
         <div style={{ width: "100%", aspectRatio: "9/14", background: "#111", position: "relative", overflow: "hidden" }}>

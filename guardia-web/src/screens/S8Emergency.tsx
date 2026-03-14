@@ -1,17 +1,8 @@
 import PhoneFrame from "../components/layout/PhoneFrame";
-import MelbourneTime from "../components/layout/MelbourneTime";
 
 export default function S8Emergency() {
   return (
     <PhoneFrame>
-      <div className="status-bar">
-        <MelbourneTime className="status-time" />
-        <div className="status-icons">
-          <div className="signal-bars"><span /><span /><span /></div>
-          <span className="wifi-icon">▲</span>
-          <div className="battery"><div className="battery-fill" /></div>
-        </div>
-      </div>
       <div className="emergency-bg">
         <div className="emer-card">
           <div className="emer-icon-wrap"><span className="emer-icon">🚨</span></div>
