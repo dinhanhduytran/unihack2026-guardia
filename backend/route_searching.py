@@ -8,13 +8,11 @@ from dotenv import load_dotenv
 import json
 load_dotenv()
 
-es = Elasticsearch(
-    "https://search-hackathon-zokoaojzymdhcvdvuguoknaqpa.us-east-1.es.amazonaws.com",
-    http_auth=("meomeo", "Vi4510471@"),
-    use_ssl=True,
-    verify_certs=True,
-)
 
+es = Elasticsearch(
+    "https://53d451333c054a5fb9e03535486d2441.us-east-2.aws.elastic-cloud.com:443",
+    basic_auth=("elastic", "9xIPonSzggYGcqR9N3Rz0YvT"),
+)
 
 class NightSafetyRisk:
     STREET_HARASSMENT         = "STREET_HARASSMENT"

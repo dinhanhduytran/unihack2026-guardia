@@ -46,7 +46,7 @@ def scored_routes(
     mapbox_routes = get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat)
     today = datetime.today()
     all_routes = []
-
+    print(len(mapbox_routes))
     for route in mapbox_routes:
         coords = route["geometry"]["coordinates"]  # [[lng, lat], ...]
         cumulative_distance = 0.0

@@ -160,7 +160,6 @@ Typography:
 ### S2 Permissions
 - Two permission cards: Location and Mic.
 - CTA buttons inside card rows.
-- Remove the "Skip for now" action from this screen.
 - After both permissions are granted (`location = granted` and `mic = granted`), show a primary `Next` button.
 - `Next` action: route to `/home` (S3 Home).
 
