@@ -14,8 +14,9 @@ from route_searching import (
     find_events_on_route,
     SEVERITY_WEIGHT,
 )
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
-HEYGEN_API_KEY = os.getenv("HEYGEN_API_KEY", "")
+load_dotenv(os.path.join(os.getcwd(), ".env"))
+HEYGEN_API_KEY = os.getenv("HEYGEN_API_KEY")
+assert HEYGEN_API_KEY, "HEYGEN_API_KEY is not set"
 app = FastAPI()
 
 app.add_middleware(

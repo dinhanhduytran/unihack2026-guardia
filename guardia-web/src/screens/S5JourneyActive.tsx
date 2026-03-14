@@ -13,7 +13,6 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import { useAppSelector } from "../store/hooks";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
-
 type RouteResponse = {
   routes: Array<{
     geometry: {
