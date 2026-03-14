@@ -97,50 +97,50 @@ async def companion_start():
     return {"token": token}
 
 
-@app.post("/voice_detect")
-async def voice_detect(audio: UploadFile = File(...)):
-    if not audio:
-        raise HTTPException(status_code=400, detail="Audio file is missing")
+# @app.post("/voice_detect")
+# async def voice_detect(audio: UploadFile = File(...)):
+#     if not audio:
+#         raise HTTPException(status_code=400, detail="Audio file is missing")
 
-    print(f"[voice_detect] Audio file: {audio.filename}")
-    if not OPENAI_API_KEY:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
+#     print(f"[voice_detect] Audio file: {audio.filename}")
+#     if not OPENAI_API_KEY:
+#         raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set")
 
-    # Read audio into memory
-    audio_bytes = await audio.read()
-    if not audio_bytes:
-        raise HTTPException(status_code=400, detail="Audio file is empty")
+#     # Read audio into memory
+#     audio_bytes = await audio.read()
+#     if not audio_bytes:
+#         raise HTTPException(status_code=400, detail="Audio file is empty")
 
-    # Determine save filename: use extension from original or default to webm
-    filename = audio.filename or "chunk.webm"
-    save_path = os.path.join(SAVE_DIR, filename)
+#     # Determine save filename: use extension from original or default to webm
+#     filename = audio.filename or "chunk.webm"
+#     save_path = os.path.join(SAVE_DIR, filename)
 
-    # Save uploaded audio locally
-    with open(save_path, "wb") as f:
-        f.write(audio_bytes)
-    print(f"[voice_detect] Saved audio to {save_path}")
+#     # Save uploaded audio locally
+#     with open(save_path, "wb") as f:
+#         f.write(audio_bytes)
+#     print(f"[voice_detect] Saved audio to {save_path}")
 
-    # Send to OpenAI Whisper API
-    async with httpx.AsyncClient(timeout=60) as client:
-        response = await client.post(
-            "https://api.openai.com/v1/audio/transcriptions",
-            headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
-            data={"model": "whisper-1"},
-            files={
-                "file": (
-                    filename,
-                    audio_bytes,
-                    audio.content_type or "audio/wav",  # use proper MIME type
-                )
-            },
-        )
+#     # Send to OpenAI Whisper API
+#     async with httpx.AsyncClient(timeout=60) as client:
+#         response = await client.post(
+#             "https://api.openai.com/v1/audio/transcriptions",
+#             headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+#             data={"model": "whisper-1"},
+#             files={
+#                 "file": (
+#                     filename,
+#                     audio_bytes,
+#                     audio.content_type or "audio/wav",  # use proper MIME type
+#                 )
+#             },
+#         )
 
-    if response.status_code != 200:
-        print(f"[voice_detect] OpenAI error {response.status_code}: {response.text}")
-        raise HTTPException(status_code=response.status_code, detail=response.text)
+#     if response.status_code != 200:
+#         print(f"[voice_detect] OpenAI error {response.status_code}: {response.text}")
+#         raise HTTPException(status_code=response.status_code, detail=response.text)
 
-    transcript = response.json().get("text", "")
-    print(f"[voice_detect] Transcript: {transcript}")
+#     transcript = response.json().get("text", "")
+#     print(f"[voice_detect] Transcript: {transcript}")
 
-    # Return your custom response
-    return build_voice_detect_response(transcript)
+#     # Return your custom response
+#     return build_voice_detect_response(transcript)
