@@ -61,9 +61,11 @@ export default function S6Companion() {
   };
 
   const stopSession = async () => {
-    await avatarRef.current?.closeVoiceChat();
-    await avatarRef.current?.stopAvatar();
+    const avatar = avatarRef.current;
     avatarRef.current = null;
+    if (!avatar) return;
+    try { await avatar.closeVoiceChat(); } catch {}
+    try { await avatar.stopAvatar(); } catch {}
     setSessionId(null);
     setStatus("idle");
     setMicActive(false);

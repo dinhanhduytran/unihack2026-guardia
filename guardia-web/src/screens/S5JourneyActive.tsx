@@ -103,6 +103,7 @@ export default function S5JourneyActive() {
 
   // HeyGen companion popup
   const [companionOpen, setCompanionOpen] = useState(false);
+  const [popupWidth, setPopupWidth] = useState(180);
   const [companionStatus, setCompanionStatus] = useState<"idle" | "loading" | "connected" | "error">("idle");
   const [micActive, setMicActive] = useState(false);
   const companionVideoRef = useRef<HTMLVideoElement>(null);
@@ -129,6 +130,7 @@ export default function S5JourneyActive() {
       avatar.on(StreamingEvents.STREAM_DISCONNECTED, () => {
         setCompanionStatus("idle");
         setMicActive(false);
+        setCompanionOpen(false);
       });
       await avatar.createStartAvatar({
         quality: AvatarQuality.Low,
@@ -141,9 +143,11 @@ export default function S5JourneyActive() {
   };
 
   const stopCompanion = async () => {
-    await avatarRef.current?.closeVoiceChat();
-    await avatarRef.current?.stopAvatar();
+    const avatar = avatarRef.current;
     avatarRef.current = null;
+    if (!avatar) return;
+    try { await avatar.closeVoiceChat(); } catch {}
+    try { await avatar.stopAvatar(); } catch {}
     setCompanionStatus("idle");
     setMicActive(false);
     if (companionVideoRef.current) companionVideoRef.current.srcObject = null;
@@ -507,10 +511,22 @@ export default function S5JourneyActive() {
       {companionOpen && (
         <div style={{
           position: "absolute", bottom: 220, left: 12, zIndex: 50,
-          width: 180, borderRadius: 16, overflow: "hidden",
+          width: popupWidth, borderRadius: 16, overflow: "hidden",
           boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
           background: "#111",
+          transition: "width 0.2s ease",
         }}>
+          {/* Zoom controls */}
+          <div style={{ position: "absolute", top: 6, right: 6, zIndex: 10, display: "flex", gap: 4 }}>
+            <button
+              onClick={() => setPopupWidth((w) => Math.min(w + 40, 320))}
+              style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", fontSize: 14, cursor: "pointer", lineHeight: 1 }}
+            >+</button>
+            <button
+              onClick={() => setPopupWidth((w) => Math.max(w - 40, 120))}
+              style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", fontSize: 14, cursor: "pointer", lineHeight: 1 }}
+            >−</button>
+          </div>
           <div style={{ width: "100%", aspectRatio: "3/4", position: "relative" }}>
             <video
               ref={companionVideoRef}
@@ -542,7 +558,7 @@ export default function S5JourneyActive() {
                   {micActive ? "🎙 On" : "🎙 Off"}
                 </button>
                 <button
-                  onClick={() => void stopCompanion()}
+                  onClick={() => { void stopCompanion(); setCompanionOpen(false); }}
                   style={{ fontSize: 10, padding: "4px 8px", borderRadius: 999, background: "rgba(232,115,90,0.85)", color: "#fff", border: "none", cursor: "pointer" }}
                 >
                   End
