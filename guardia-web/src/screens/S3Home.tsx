@@ -1,27 +1,16 @@
 import PhoneFrame from "../components/layout/PhoneFrame";
 import PlaceSearchInput from "../components/location/PlaceSearchInput";
 import { useAppSelector } from "../store/hooks";
-import MelbourneTime from "../components/layout/MelbourneTime";
 import { useNavigate } from "react-router-dom";
 
 export default function S3Home() {
   const navigate = useNavigate();
-  const origin = useAppSelector((state) => state.location.origin);
-  const destination = useAppSelector((state) => state.location.destination);
   const userName = useAppSelector((state) => state.profile.userName);
   const displayName = userName || "Sarah";
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || "S";
 
   return (
     <PhoneFrame withNav>
-      <div className="status-bar">
-        <MelbourneTime className="status-time" />
-        <div className="status-icons">
-          <div className="signal-bars"><span /><span /><span /></div>
-          <span className="wifi-icon">▲</span>
-          <div className="battery"><div className="battery-fill" /></div>
-        </div>
-      </div>
       <div className="home-header">
         <div>
           <div className="greeting-small">Good evening,</div>
