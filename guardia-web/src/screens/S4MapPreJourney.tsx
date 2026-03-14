@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
 import PlaceSearchInput from "../components/location/PlaceSearchInput";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { setOrigin } from "../store/locationSlice";
+import { setOrigin, setSelectedRoute } from "../store/locationSlice";
 import { useEffect, useMemo, useState } from "react";
 import Map, {
   Layer,
@@ -579,7 +579,21 @@ const initialViewState = useMemo(() => {
           </div>
 
           <div className="custom-drawer-footer">
-            <Link to="/journey" style={{ textDecoration: "none", width: "100%" }}>
+            <Link
+              to="/journey"
+              style={{ textDecoration: "none", width: "100%" }}
+              onClick={() => {
+                if (selectedRoute) {
+                  dispatch(setSelectedRoute({
+                    coordinates: selectedRoute.routes,
+                    crime_events: selectedRoute.crime_events,
+                    safety_score: selectedRoute.safety_score,
+                    distance_km: selectedRoute.distance_km,
+                    eta_minutes: selectedRoute.eta_minutes,
+                  }));
+                }
+              }}
+            >
               <button className="btn-primary custom-drawer-btn" disabled={!selectedRoute}>
                 Start Journey →
               </button>

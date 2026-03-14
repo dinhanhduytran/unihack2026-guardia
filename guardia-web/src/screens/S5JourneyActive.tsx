@@ -11,6 +11,28 @@ import PhoneFrame from "../components/layout/PhoneFrame";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useAppSelector } from "../store/hooks";
 
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Returns a CSS color: bright red when close, fading to grey at far distances
+function proximityColor(distanceMeters: number): string {
+  const maxDist = 400; // beyond this → fully grey
+  const minDist = 30;  // closer than this → max red
+  const t = Math.max(0, Math.min(1, 1 - (distanceMeters - minDist) / (maxDist - minDist)));
+  const r = Math.round(232 * t + 150 * (1 - t)); // 232 = red, 150 = grey
+  const g = Math.round(30 * t + 150 * (1 - t));
+  const b = Math.round(30 * t + 150 * (1 - t));
+  return `rgb(${r},${g},${b})`;
+}
+
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
 
 type RouteResponse = {
@@ -53,6 +75,7 @@ const routeOutlineLayer: LayerProps = {
 
 export default function S5JourneyActive() {
   const destination = useAppSelector((state) => state.location.destination);
+  const storedRoute = useAppSelector((state) => state.location.selectedRoute);
 
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
@@ -61,13 +84,19 @@ export default function S5JourneyActive() {
   } | null>(null);
 
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>(
-    []
+    storedRoute?.coordinates ?? []
   );
 
   const [routeInfo, setRouteInfo] = useState<{
     distance: number;
     duration: number;
-  } | null>(null);
+  } | null>(
+    storedRoute
+      ? { distance: storedRoute.distance_km * 1000, duration: storedRoute.eta_minutes * 60 }
+      : null
+  );
+
+  const crimeEvents = storedRoute?.crime_events ?? [];
 
   const [viewState, setViewState] = useState({
     latitude: -37.8136,
@@ -92,7 +121,6 @@ export default function S5JourneyActive() {
         }
 
         const json: RouteResponse = await query.json();
-        console.log("Directions API response:", json);
 
         if (json.routes && json.routes.length > 0) {
           const route = json.routes[0];
@@ -101,13 +129,7 @@ export default function S5JourneyActive() {
             distance: route.distance,
             duration: route.duration,
           });
-
-          console.log("Route fetched:", {
-            distance: `${(route.distance / 1000).toFixed(2)} km`,
-            duration: `${Math.round(route.duration / 60)} min`,
-          });
         } else {
-          console.warn("No routes found.");
           setRouteCoordinates([]);
           setRouteInfo(null);
         }
@@ -255,6 +277,38 @@ export default function S5JourneyActive() {
               </>
             )}
 
+            {crimeEvents.map((event) => {
+              const dist = userLocation
+                ? haversineMeters(userLocation.latitude, userLocation.longitude, event.lat, event.lng)
+                : 999;
+              const color = proximityColor(dist);
+              const scale = dist < 100 ? 1.4 : dist < 200 ? 1.15 : 1;
+              return (
+                <Marker key={event.id} longitude={event.lng} latitude={event.lat} anchor="center">
+                  <div
+                    title={`${event.type} · ${event.date} · ${Math.round(dist)}m away`}
+                    style={{
+                      width: 22 * scale,
+                      height: 22 * scale,
+                      borderRadius: "50%",
+                      backgroundColor: color,
+                      border: `2px solid white`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontWeight: 800,
+                      fontSize: 11 * scale,
+                      color: "white",
+                      boxShadow: dist < 150 ? `0 0 8px ${color}` : "none",
+                      transition: "all 0.5s ease",
+                    }}
+                  >
+                    !
+                  </div>
+                </Marker>
+              );
+            })}
+
             {endPoint && (
               <Marker
                 longitude={endPoint[0]}
@@ -382,8 +436,8 @@ export default function S5JourneyActive() {
 
         <div className="hud-card">
           <div className="hud-lbl">Safety</div>
-          <div className="hud-val" style={{ color: "var(--teal)" }}>
-            87
+          <div className="hud-val" style={{ color: storedRoute && storedRoute.safety_score >= 60 ? "var(--teal)" : "var(--coral)" }}>
+            {storedRoute?.safety_score ?? "—"}
           </div>
           <div
             className="hud-sub"

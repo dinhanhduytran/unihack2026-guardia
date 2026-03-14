@@ -7,4 +7,7 @@ export default defineConfig({
   optimizeDeps: {
     include: ["@heygen/streaming-avatar"],
   },
+  server: {
+    allowedHosts: true,
+  },
 })

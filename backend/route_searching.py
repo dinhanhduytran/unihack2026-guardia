@@ -9,10 +9,8 @@ import json
 load_dotenv()
 
 es = Elasticsearch(
-    "https://search-hackathon-zokoaojzymdhcvdvuguoknaqpa.us-east-1.es.amazonaws.com",
-    http_auth=("meomeo", "Vi4510471@"),
-    use_ssl=True,
-    verify_certs=True,
+    "https://53d451333c054a5fb9e03535486d2441.us-east-2.aws.elastic-cloud.com:443",
+    basic_auth=("elastic", "9xIPonSzggYGcqR9N3Rz0YvT"),
 )
 
 
@@ -57,102 +55,102 @@ def create_index():
 
 #load data into elasticsearch from csv file
 def load_csv_to_elasticsearch(filepath):
-    # Check if already loaded
+    from tqdm import tqdm
+    from elasticsearch.helpers import bulk
+    import hashlib
+
     count = es.count(index="recorded_events")["count"]
     if count > 0:
         print(f"Already have {count} events in ES — skipping load")
         return
 
-    loaded = 0
     with open(filepath, newline="") as f:
-        for row in csv.DictReader(f):
-            event_type = row["type"]
-            es.index(index="recorded_events", body={
+        rows = list(csv.DictReader(f))
 
+    actions = [
+        {
+            "_index": "recorded_events",
+            "_id": hashlib.md5(f"{row['latitude']}{row['longitude']}{row['date']}{row['type']}".encode()).hexdigest(),
+            "_source": {
                 "location": {
                     "lat": float(row["latitude"]),
                     "lon": float(row["longitude"]),
                 },
                 "date":        row["date"],
-                "type":        event_type,
-                "description": ENUM_DESCRIPTION.get(event_type, ""),
-            })
-            loaded += 1
+                "type":        row["type"],
+                "description": ENUM_DESCRIPTION.get(row["type"], ""),
+            }
+        }
+        for row in rows
+    ]
 
-    # Refresh index so documents are immediately searchable
+    success, failed = bulk(es, tqdm(actions, desc="Loading crime events", unit="event"))
     es.indices.refresh(index="recorded_events")
-    print(f"Loaded {loaded} crime events into Elasticsearch")
+    print(f"Loaded {success} crime events into Elasticsearch ({failed} failed)")
 
-def find_events_on_route(lat,lng, radius="150m",
-                          recent_days=None, types=None):
-    hit_ids = set()   # track seen ES doc IDs to avoid duplicates
-    events  = []
+def find_events_on_route(route, radius="150m", recent_days=None, types=None):
+    coords = route["geometry"]["coordinates"]  # [[lng, lat], ...]
+    radius_m = float(radius.replace("m", ""))
 
-
-    must_clauses = [
-            {
-                "geo_distance": {
-                    "distance": radius,
-                    "location": {
-                        "lat": lat,
-                        "lon": lng,
-                    }
+    # Bounding box with padding
+    lats = [c[1] for c in coords]
+    lngs = [c[0] for c in coords]
+    pad = radius_m / 111000  # degrees padding
+    filter_clauses = [
+        {
+            "geo_bounding_box": {
+                "location": {
+                    "top_left":     {"lat": max(lats) + pad, "lon": min(lngs) - pad},
+                    "bottom_right": {"lat": min(lats) - pad, "lon": max(lngs) + pad},
                 }
             }
-        ]
-
-    filter_clauses = []
+        }
+    ]
 
     if recent_days:
-            filter_clauses.append({
-                "range": {
-                    "date": { "gte": f"now-{recent_days}d/d" }
-                }
-            })
-
+        filter_clauses.append({"range": {"date": {"gte": f"now-{recent_days}d/d"}}})
     if types:
-            filter_clauses.append({
-                "terms": { "type": types }
-            })
+        filter_clauses.append({"terms": {"type": types}})
 
-    query = {
-            "query": {
-                "bool": {
-                    "must":   must_clauses,
-                    "filter": filter_clauses,
-                }
-            },
-            "sort": [
-                {
-                    "_geo_distance": {
-                        "location": { "lat": lat, "lon": lng },
-                        "order":    "asc",
-                        "unit":     "m",
-                    }
-                }
-            ],
-            "size": 1000
+    # Single query for all events in bounding box
+    response = es.search(index="recorded_events", body={
+        "query": {"bool": {"filter": filter_clauses}},
+        "size": 10000,
+    })
+
+    # Filter in Python: keep only events within radius_m of any route point
+    candidate_events = [
+        {
+            "id":          hit["_id"],
+            "lat":         hit["_source"]["location"]["lat"],
+            "lng":         hit["_source"]["location"]["lon"],
+            "date":        hit["_source"]["date"],
+            "type":        hit["_source"]["type"],
+            "description": hit["_source"].get("description", ""),
         }
+        for hit in response["hits"]["hits"]
+    ]
 
-    response = es.search(index="recorded_events", body=query)
-
-    for hit in response["hits"]["hits"]:
-            if hit["_id"] in hit_ids:
-                continue
-
-            hit_ids.add(hit["_id"])
-            source     = hit["_source"]
-            distance_m = hit["sort"][0]
-
-            events.append({
-                "id":          hit["_id"],
-                "lat":         source["location"]["lat"],
-                "lng":         source["location"]["lon"],
-                "date":        source["date"],
-                "type":        source["type"],
-                "description": source.get("description", ""),
-                "distance_m":  round(distance_m, 1),
-            })
+    events = []
+    seen_ids = set()
+    for event in candidate_events:
+        if event["id"] in seen_ids:
+            continue
+        # Check proximity to any route coordinate
+        min_dist = float("inf")
+        for lng, lat in coords:
+            dlat = math.radians(event["lat"] - lat)
+            dlng = math.radians(event["lng"] - lng)
+            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat)) * math.cos(math.radians(event["lat"])) * math.sin(dlng/2)**2
+            dist = 2 * 6371000 * math.asin(math.sqrt(a))
+            if dist < min_dist:
+                min_dist = dist
+            if min_dist <= radius_m:
+                break
+        if min_dist <= radius_m:
+            seen_ids.add(event["id"])
+            event["distance_m"] = round(min_dist, 1)
+            events.append(event)
 
     return events
 
@@ -163,43 +161,42 @@ def score_route(route, radius="150m", recent_days=None, types=None):
     seen_ids     = set()
 
     # Check every coordinate point along the route
-    for lat, lng in route["points"]:
-        events = find_events_on_route(lat, lng, radius=radius, recent_days=recent_days, types=types)
+    events = find_events_on_route(route, radius=radius, recent_days=recent_days, types=types)
 
-        for event in events:
-            if event["id"] in seen_ids:
-                continue
-            seen_ids.add(event["id"])
+    for event in events:
+        if event["id"] in seen_ids:
+            continue
+        seen_ids.add(event["id"])
 
-            event_date    = datetime.strptime(event["date"], "%Y-%m-%d")
-            days_ago      = (today - event_date).days
-            decay         = 1 / (1 + days_ago / 90)
-            weighted_risk = SEVERITY_WEIGHT.get(event["type"], 0) * decay
+        event_date    = datetime.strptime(event["date"], "%Y-%m-%d")
+        days_ago      = (today - event_date).days
+        decay         = 1 / (1 + days_ago / 90)
+        weighted_risk = SEVERITY_WEIGHT.get(event["type"], 0) * decay
 
-            total_risk += weighted_risk
-            route_events.append({
-                "event_id":    event["id"],
-                "type":        event["type"],
-                "date":        event["date"],
-                "description": event["description"],
-                "distance_m":  event["distance_m"],
-                "risk":        round(weighted_risk, 2),
-            })
+        total_risk += weighted_risk
+        route_events.append({
+            "event_id":    event["id"],
+            "lat":         event["lat"],
+            "lng":         event["lng"],
+            "type":        event["type"],
+            "date":        event["date"],
+            "description": event["description"],
+            "distance_m":  event["distance_m"],
+            "risk":        round(weighted_risk, 2),
+        })
 
     route_events.sort(key=lambda e: e["distance_m"])
-    safety_score = max(0, round(100 - total_risk * 2))
-
+    # Log scale: risk=0→100, risk=10→73, risk=100→60, risk=1000→40
+    safety_score = max(0, round(100 - 20 * math.log10(1 + total_risk)))
     return {
-        "id":           route["id"],
-        "label":        route["label"],
-        "distance_km":  route["distance_km"],
-        "eta_minutes":  route["eta_minutes"],
+        "distance_km":  route["distance"] /  1000,
+        "eta_minutes":  route["duration"] / 60,
         "safety_score": safety_score,
         "total_risk":   round(total_risk, 2),
         "crime_count":  len(events),
         "route_events": route_events,
         "recommended":  False,
-        "routes": [[lng, lat] for lat, lng in route["points"]]  # [lng, lat] for Mapbox frontend
+        "routes": route['geometry']['coordinates'],  # [lng, lat] for Mapbox frontend
     }
 
 def rank_routes(routes, radius="150m", recent_days=None, types=None):
@@ -221,7 +218,7 @@ def rank_routes(routes, radius="150m", recent_days=None, types=None):
 MAPBOX_TOKEN = os.getenv('MAPBOX_TOKEN')
 
 
-def get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat, mode="walking"):
+def get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat, mode="driving"):
     """Fetch walking routes from Mapbox Directions API."""
     url = (
         f"https://api.mapbox.com/directions/v5/mapbox/{mode}/"
@@ -235,57 +232,45 @@ def get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat, mode="walking"
 
 
 if __name__ == "__main__":
-    # es.indices.delete(index="recorded_events")
+    es.indices.delete(index="recorded_events")
     create_index()
-    load_csv_to_elasticsearch("dummy_data.csv")
+    load_csv_to_elasticsearch("melbourne_safety_small.csv")
 
-    # Melbourne coords: Watsonia → Bundoora
-    origin_lat, origin_lng = -37.7116, 145.0819
-    dest_lat, dest_lng     = -37.7063, 145.0612
+    # Melbourne CBD: Flinders St → RMIT
+    origin_lat, origin_lng = -37.8183, 144.9671
+    dest_lat, dest_lng     = -37.8080, 144.9631
 
     import json
     mapbox_routes = get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat)
-
+    scored = rank_routes(mapbox_routes, radius="150m", recent_days=90)
     results = []
-    for i,route in enumerate(mapbox_routes):
-        coords = route["geometry"]["coordinates"]  # [[lng, lat], ...]
-        today = datetime.today()
-        total_points = len(coords)
-        cumulative_distance = 0.0
-        cumulative_duration = 0.0
-
-        for idx, (lng, lat) in enumerate(coords):
-            segment_m = 0.0
-            segment_min = 0.0
-            if idx > 0:
-                prev_lng, prev_lat = coords[idx - 1]
-                R = 6371000
-                phi1, phi2 = math.radians(prev_lat), math.radians(lat)
-                dphi = math.radians(lat - prev_lat)
-                dlambda = math.radians(lng - prev_lng)
-                a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
-                segment_m = 2 * R * math.asin(math.sqrt(a))
-                segment_min = (segment_m / route["distance"]) * (route["duration"] / 60)
-                cumulative_distance += segment_m
-                cumulative_duration += segment_min
-
-            events = find_events_on_route(lat, lng, radius="150m", recent_days=90)
-            total_risk = 0.0
-            for event in events:
-                days_ago = (today - datetime.strptime(event["date"], "%Y-%m-%d")).days
-                decay = 1 / (1 + days_ago / 90)
-                total_risk += SEVERITY_WEIGHT.get(event["type"], 0) * decay
-
-            results.append({
-                "geometry":    {"coordinates": [lng, lat], "type": "Point"},
-                "distance":    round(segment_m, 2),
-                "duration":    round(segment_min, 2),
-                "weight":      max(0, round(100 - total_risk * 2)),
-                "weight_name": f"route{idx+1}",
-            })
-
-    print(f"\n--- Route {i+1} verification ---")
-    print(f"Mapbox distance:  {route['distance']:.2f} m  |  Haversine sum: {cumulative_distance:.2f} m  |  diff: {abs(route['distance'] - cumulative_distance):.2f} m")
-    print(f"Mapbox duration:  {route['duration']/60:.2f} min  |  Cumulative:     {cumulative_duration:.2f} min  |  diff: {abs(route['duration']/60 - cumulative_duration):.2f} min")
+    for route in scored:
+        coords = route["routes"]  # [[lng, lat], ...]
+        points = [
+            {
+                "geometry": {"coordinates": coord, "type": "Point"},
+                "distance": 0,
+                "duration": 0,
+                "weight": route["safety_score"],
+            }
+            for coord in coords
+        ]
+        crime_events = [
+            {
+                "id": e["event_id"],
+                "lat": 0,
+                "lng": 0,
+                "type": e["type"],
+                "date": e["date"],
+            }
+            for e in route.get("route_events", [])
+        ]
+        results.append({
+            "distance": route["distance_km"] * 1000,
+            "duration": route["eta_minutes"] * 60,
+            "safety_score": route["safety_score"],
+            "points": points,
+            "crime_events": crime_events,
+        })
 
     print(json.dumps(results, indent=2))
