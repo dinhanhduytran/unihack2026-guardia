@@ -12,30 +12,42 @@ import Map, {
   type LayerProps,
 } from "react-map-gl/mapbox";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
+
+type BackendPoint = {
+  geometry: { coordinates: [number, number]; type: "Point" };
+  distance: number;
+  duration: number;
+  weight: number;
+};
+
+type CrimeEvent = {
+  id: string;
+  lat: number;
+  lng: number;
+  type: string;
+  date: string;
+};
+
+type BackendRouteRaw = {
+  distance: number;
+  duration: number;
+  safety_score: number;
+  points: BackendPoint[];
+  crime_events: CrimeEvent[];
+};
+
 type BackendRoute = {
   id: string;
   label: string;
   distance_km: number;
   eta_minutes: number;
   safety_score: number;
-  total_risk: number;
-  crime_count: number;
-  route_events: unknown[];
   recommended: boolean;
   routes: [number, number][];
+  points: BackendPoint[];
+  crime_events: CrimeEvent[];
 };
-
-type DirectionsApiResponse = {
-  routes?: Array<{
-    geometry: {
-      coordinates: [number, number][];
-    };
-    distance: number;
-    duration: number;
-  }>;
-};
-
-const ROUTE_SAFETY_SCORES = [87, 76, 64];
 
 const selectedRouteLayer: LayerProps = {
   id: "selected-route",
@@ -185,35 +197,31 @@ export default function S4MapPreJourney() {
         setRoutesError(null);
 
         const response = await fetch(
-          `https://api.mapbox.com/directions/v5/mapbox/walking/${origin.long},${origin.lat};${destination.long},${destination.lat}?alternatives=true&geometries=geojson&overview=full&steps=false&access_token=${encodeURIComponent(mapboxToken)}`,
+          `${BACKEND_URL}/routes?origin_lat=${origin.lat}&origin_lng=${origin.long}&dest_lat=${destination.lat}&dest_lng=${destination.long}`,
           { signal: controller.signal },
         );
 
         if (!response.ok) {
-          throw new Error(`Directions request failed: ${response.status}`);
+          throw new Error(`Routes request failed: ${response.status}`);
         }
 
-        const payload = (await response.json()) as DirectionsApiResponse;
-        const routes = payload.routes ?? [];
+        const raw = (await response.json()) as BackendRouteRaw[];
 
-        const mappedRoutes: BackendRoute[] = routes.map((route, index) => {
-          const safetyScore =
-            ROUTE_SAFETY_SCORES[index] ?? Math.max(50, 60 - index * 4);
-
+        const bestScore = Math.max(...raw.map((r) => r.safety_score));
+        const mappedRoutes: BackendRoute[] = raw.map((route, index) => {
+          const coords = route.points.map(
+            (p) => p.geometry.coordinates as [number, number],
+          );
           return {
             id: `route-${index + 1}`,
-            label: index === 0 ? "Recommended route" : `Alternative ${index}`,
+            label: `Route ${index + 1}`,
             distance_km: Number((route.distance / 1000).toFixed(1)),
             eta_minutes: Math.max(1, Math.round(route.duration / 60)),
-            safety_score: safetyScore,
-            total_risk: Number(((100 - safetyScore) / 18).toFixed(2)),
-            crime_count: Math.max(1, index + 1),
-            route_events: [],
-            recommended: index === 0,
-            routes: route.geometry.coordinates.map((coordinate) => [
-              coordinate[0],
-              coordinate[1],
-            ]),
+            safety_score: route.safety_score,
+            recommended: route.safety_score === bestScore,
+            routes: coords,
+            points: route.points,
+            crime_events: route.crime_events,
           };
         });
 
@@ -457,6 +465,28 @@ const initialViewState = useMemo(() => {
               </Marker>
             ))}
 
+            {(selectedRoute?.crime_events ?? []).map((event) => (
+              <Marker
+                key={event.id}
+                longitude={event.lng}
+                latitude={event.lat}
+                anchor="center"
+              >
+                <div
+                  className={`incident-marker ${
+                    event.type === "SEXUAL_ASSAULT"
+                      ? "incident-high"
+                      : event.type === "UNWANTED_PHYSICAL_CONTACT"
+                        ? "incident-medium"
+                        : "incident-low"
+                  }`}
+                  title={`${event.type} · ${event.date}`}
+                >
+                  <span>!</span>
+                </div>
+              </Marker>
+            ))}
+
             {origin?.lat != null && origin?.long != null ? (
               <Marker
                 latitude={origin.lat}
@@ -556,7 +586,7 @@ const initialViewState = useMemo(() => {
                     </span>
                   ) : (
                     <span className="custom-badge custom-badge-warn">
-                      {route.crime_count} incidents
+                      ▲ score {route.safety_score}
                     </span>
                   )}
                 </button>
