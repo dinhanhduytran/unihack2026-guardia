@@ -219,7 +219,7 @@ def rank_routes(routes, radius="150m", recent_days=None, types=None):
 MAPBOX_TOKEN = os.getenv('MAPBOX_TOKEN')
 
 
-def get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat, mode="walking"):
+def get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat, mode="driving"):
     """Fetch walking routes from Mapbox Directions API."""
     url = (
         f"https://api.mapbox.com/directions/v5/mapbox/{mode}/"
