@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import Map, {
   Layer,
   Marker,
@@ -7,7 +7,10 @@ import Map, {
   NavigationControl,
   type LayerProps,
 } from "react-map-gl/mapbox";
+import StreamingAvatar, { AvatarQuality, StreamingEvents } from "@heygen/streaming-avatar";
 import PhoneFrame from "../components/layout/PhoneFrame";
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useAppSelector } from "../store/hooks";
 
@@ -97,6 +100,79 @@ export default function S5JourneyActive() {
   );
 
   const crimeEvents = storedRoute?.crime_events ?? [];
+
+  // HeyGen companion popup
+  const [companionOpen, setCompanionOpen] = useState(false);
+  const [companionStatus, setCompanionStatus] = useState<"idle" | "loading" | "connected" | "error">("idle");
+  const [micActive, setMicActive] = useState(false);
+  const companionVideoRef = useRef<HTMLVideoElement>(null);
+  const avatarRef = useRef<StreamingAvatar | null>(null);
+
+  const startCompanion = async () => {
+    setCompanionStatus("loading");
+    try {
+      const res = await fetch(`${BACKEND_URL}/companion/start`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      const data = await res.json() as { token: string };
+      const avatar = new StreamingAvatar({ token: data.token });
+      avatarRef.current = avatar;
+      avatar.on(StreamingEvents.STREAM_READY, (event: CustomEvent<MediaStream>) => {
+        if (companionVideoRef.current && event.detail) {
+          companionVideoRef.current.srcObject = event.detail;
+          void companionVideoRef.current.play();
+        }
+        setCompanionStatus("connected");
+        avatar.startVoiceChat({ isInputAudioMuted: false })
+          .then(() => setMicActive(true))
+          .catch(() => {});
+      });
+      avatar.on(StreamingEvents.STREAM_DISCONNECTED, () => {
+        setCompanionStatus("idle");
+        setMicActive(false);
+      });
+      await avatar.createStartAvatar({
+        quality: AvatarQuality.Low,
+        avatarName: "Ann_Therapist_public",
+        knowledgeBase: "You are Guardia, a personal safety AI companion. The user is currently walking. Be warm, calm and reassuring. If they mention feeling unsafe or an emergency, urge them to press SOS immediately.",
+      });
+    } catch {
+      setCompanionStatus("error");
+    }
+  };
+
+  const stopCompanion = async () => {
+    await avatarRef.current?.closeVoiceChat();
+    await avatarRef.current?.stopAvatar();
+    avatarRef.current = null;
+    setCompanionStatus("idle");
+    setMicActive(false);
+    if (companionVideoRef.current) companionVideoRef.current.srcObject = null;
+  };
+
+  useEffect(() => {
+    return () => { void avatarRef.current?.stopAvatar(); };
+  }, []);
+  const warnedIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!userLocation || crimeEvents.length === 0) return;
+    crimeEvents.forEach((event) => {
+      const dist = haversineMeters(userLocation.latitude, userLocation.longitude, event.lat, event.lng);
+      if (dist < 150 && !warnedIds.current.has(event.id)) {
+        warnedIds.current.add(event.id);
+        const label =
+          event.type === "SEXUAL_ASSAULT" ? "sexual assault"
+          : event.type === "UNWANTED_PHYSICAL_CONTACT" ? "unwanted physical contact"
+          : "street harassment";
+        const msg = new SpeechSynthesisUtterance(
+          `Warning! A ${label} incident was reported ${Math.round(dist)} metres ahead. Please stay alert.`
+        );
+        msg.rate = 1;
+        msg.pitch = 1;
+        window.speechSynthesis.speak(msg);
+      }
+    });
+  }, [userLocation, crimeEvents]);
 
   const [viewState, setViewState] = useState({
     latitude: -37.8136,
@@ -427,6 +503,56 @@ export default function S5JourneyActive() {
         )}
       </div>
 
+      {/* Companion popup - above bottom sheet, anchored bottom-left */}
+      {companionOpen && (
+        <div style={{
+          position: "absolute", bottom: 220, left: 12, zIndex: 50,
+          width: 180, borderRadius: 16, overflow: "hidden",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          background: "#111",
+        }}>
+          <div style={{ width: "100%", aspectRatio: "3/4", position: "relative" }}>
+            <video
+              ref={companionVideoRef}
+              autoPlay
+              playsInline
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: companionStatus === "connected" ? "block" : "none" }}
+            />
+            {companionStatus !== "connected" && (
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <div style={{ fontSize: 32 }}>🛡️</div>
+                {companionStatus === "loading" && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Connecting...</div>}
+                {companionStatus === "error" && (
+                  <>
+                    <div style={{ color: "#E8735A", fontSize: 11 }}>Failed</div>
+                    <button onClick={() => void startCompanion()} style={{ fontSize: 10, padding: "4px 10px", borderRadius: 999, background: "#E8735A", color: "#fff", border: "none", cursor: "pointer" }}>Retry</button>
+                  </>
+                )}
+              </div>
+            )}
+            {companionStatus === "connected" && (
+              <div style={{ position: "absolute", bottom: 6, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6 }}>
+                <button
+                  onClick={() => {
+                    if (micActive) { void avatarRef.current?.closeVoiceChat().then(() => setMicActive(false)); }
+                    else { void avatarRef.current?.startVoiceChat({ isInputAudioMuted: false }).then(() => setMicActive(true)); }
+                  }}
+                  style={{ fontSize: 10, padding: "4px 8px", borderRadius: 999, background: micActive ? "rgba(16,185,129,0.8)" : "rgba(255,255,255,0.2)", color: "#fff", border: "none", cursor: "pointer" }}
+                >
+                  {micActive ? "🎙 On" : "🎙 Off"}
+                </button>
+                <button
+                  onClick={() => void stopCompanion()}
+                  style={{ fontSize: 10, padding: "4px 8px", borderRadius: 999, background: "rgba(232,115,90,0.85)", color: "#fff", border: "none", cursor: "pointer" }}
+                >
+                  End
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="hud-row">
         <div className="hud-card">
           <div className="hud-lbl">ETA</div>
@@ -514,20 +640,30 @@ export default function S5JourneyActive() {
 
         <div className="journey-actions">
           <button
+            onClick={() => {
+              setCompanionOpen((o) => !o);
+              if (!companionOpen && companionStatus === "idle") void startCompanion();
+            }}
+            style={{
+              height: 48, fontSize: 13, borderRadius: 12, border: "none", cursor: "pointer",
+              background: companionStatus === "connected" ? "#10b981" : "rgba(232,115,90,0.15)",
+              color: companionStatus === "connected" ? "#fff" : "#E8735A",
+              fontWeight: 700,
+            }}
+          >
+            🛡️ AI Call
+          </button>
+
+          <button
             className="btn-ghost-teal"
             style={{ height: 48, fontSize: 13, borderRadius: 12 }}
           >
-            ✅ I&apos;m Home Safe
+            ✅ Safe
           </button>
 
           <button
             className="btn-primary"
-            style={{
-              height: 48,
-              fontSize: 13,
-              borderRadius: 12,
-              background: "linear-gradient(135deg,#E8735A,#c0392b)",
-            }}
+            style={{ height: 48, fontSize: 13, borderRadius: 12, background: "linear-gradient(135deg,#E8735A,#c0392b)" }}
           >
             🚨 SOS
           </button>
