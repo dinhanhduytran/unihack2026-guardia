@@ -68,68 +68,7 @@ const otherRouteLayer: LayerProps = {
   },
 };
 
-const DUMMY_INCIDENTS = [
-  { id: "inc-1", latitude: -37.8076, longitude: 144.9649, radius_m: 30 },
-  { id: "inc-2", latitude: -37.8069, longitude: 144.9637, radius_m: 10 },
-  { id: "inc-3", latitude: -37.8057, longitude: 144.9651, radius_m: 50 },
-] as const;
 
-const incidentZoneFillLayer: LayerProps = {
-  id: "incident-zone-fill",
-  type: "fill",
-  paint: {
-    "fill-color": "#FF6B6B",
-    "fill-opacity": 0.14,
-  },
-};
-
-const incidentZoneStrokeLayer: LayerProps = {
-  id: "incident-zone-stroke",
-  type: "line",
-  paint: {
-    "line-color": "#FF6B6B",
-    "line-opacity": 0.35,
-    "line-width": 1.5,
-  },
-};
-
-function createCirclePolygon(
-  centerLng: number,
-  centerLat: number,
-  radiusMeters: number,
-  steps = 48,
-): [number, number][] {
-  const earthRadiusMeters = 6378137;
-  const latRadians = (centerLat * Math.PI) / 180;
-  const lngRadians = (centerLng * Math.PI) / 180;
-  const angularDistance = radiusMeters / earthRadiusMeters;
-
-  const points: [number, number][] = [];
-  for (let i = 0; i <= steps; i += 1) {
-    const bearing = (2 * Math.PI * i) / steps;
-
-    const pointLat = Math.asin(
-      Math.sin(latRadians) * Math.cos(angularDistance) +
-        Math.cos(latRadians) * Math.sin(angularDistance) * Math.cos(bearing),
-    );
-    const pointLng =
-      lngRadians +
-      Math.atan2(
-        Math.sin(bearing) * Math.sin(angularDistance) * Math.cos(latRadians),
-        Math.cos(angularDistance) - Math.sin(latRadians) * Math.sin(pointLat),
-      );
-
-    points.push([(pointLng * 180) / Math.PI, (pointLat * 180) / Math.PI]);
-  }
-
-  return points;
-}
-
-function getIncidentClassName(radiusMeters: number) {
-  if (radiusMeters >= 140) return "incident-high";
-  if (radiusMeters >= 90) return "incident-medium";
-  return "incident-low";
-}
 
 export default function S4MapPreJourney() {
   const dispatch = useAppDispatch();
@@ -345,26 +284,6 @@ const initialViewState = useMemo(() => {
     [selectedRoute],
   );
 
-  const incidentZonesGeoJson = useMemo(
-    () => ({
-      type: "FeatureCollection" as const,
-      features: DUMMY_INCIDENTS.map((incident) => ({
-        type: "Feature" as const,
-        properties: { id: incident.id, radius_m: incident.radius_m },
-        geometry: {
-          type: "Polygon" as const,
-          coordinates: [
-            createCirclePolygon(
-              incident.longitude,
-              incident.latitude,
-              incident.radius_m,
-            ),
-          ],
-        },
-      })),
-    }),
-    [],
-  );
 
   return (
     <PhoneFrame withNav>
@@ -396,14 +315,6 @@ const initialViewState = useMemo(() => {
               </Source>
             ) : null}
 
-            <Source
-              id="incident-zones-source"
-              type="geojson"
-              data={incidentZonesGeoJson}
-            >
-              <Layer {...incidentZoneFillLayer} />
-              <Layer {...incidentZoneStrokeLayer} />
-            </Source>
 
             {startPoint ? (
               <Marker
@@ -431,23 +342,6 @@ const initialViewState = useMemo(() => {
               </Marker>
             ) : null}
 
-            {DUMMY_INCIDENTS.map((incident) => (
-              <Marker
-                key={incident.id}
-                longitude={incident.longitude}
-                latitude={incident.latitude}
-                anchor="center"
-              >
-                <div
-                  className={`incident-marker ${getIncidentClassName(
-                    incident.radius_m,
-                  )}`}
-                  title={`Incident radius ${incident.radius_m}m`}
-                >
-                  <span>!</span>
-                </div>
-              </Marker>
-            ))}
 
             {(selectedRoute?.crime_events ?? []).map((event) => (
               <Marker
