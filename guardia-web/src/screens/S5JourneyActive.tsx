@@ -3,8 +3,6 @@ import Map, {
   Layer,
   Marker,
   Source,
-  GeolocateControl,
-  NavigationControl,
   type LayerProps,
 } from "react-map-gl/mapbox";
 import StreamingAvatar, { AvatarQuality, StreamingEvents } from "@heygen/streaming-avatar";
@@ -306,16 +304,6 @@ export default function S5JourneyActive() {
     };
   }, [routeInfo]);
 
-  const handleGeolocate = useCallback((e: any) => {
-    const coords = {
-      latitude: e.coords.latitude,
-      longitude: e.coords.longitude,
-      heading: e.coords.heading,
-    };
-
-    setUserLocation(coords);
-    console.log("User location updated:", coords);
-  }, []);
   const goHome = useCallback(() => {
     navigate("/home");
   }, [navigate]);

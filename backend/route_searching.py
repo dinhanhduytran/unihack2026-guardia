@@ -234,7 +234,7 @@ def get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat, mode="driving"
 if __name__ == "__main__":
     es.indices.delete(index="recorded_events")
     create_index()
-    load_csv_to_elasticsearch("melbourne_safety_small.csv")
+    load_csv_to_elasticsearch("melbourne_safety.csv")
 
     # Melbourne CBD: Flinders St → RMIT
     origin_lat, origin_lng = -37.8183, 144.9671
