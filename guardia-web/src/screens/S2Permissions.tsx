@@ -4,6 +4,7 @@ import PhoneFrame from "../components/layout/PhoneFrame";
 import { readPermissionStatus, savePermissionStatus } from "../store/persistence";
 
 type PermissionStateLabel = "idle" | "granted" | "denied" | "unsupported";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
 
 export default function S2Permissions() {
   const [locationStatus, setLocationStatus] = useState<PermissionStateLabel>(readPermissionStatus("location"));
@@ -45,6 +46,27 @@ export default function S2Permissions() {
       setMicStatus("granted");
       savePermissionStatus("mic", "granted");
       console.log("[S2Permissions] Microphone permission granted");
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/voice/permission-granted`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: "Help me" }),
+        });
+        if (!response.ok) {
+          throw new Error(`Request failed: ${response.status}`);
+        }
+        const payload = (await response.json()) as {
+          detected: boolean;
+          message: string;
+          timestamp: string;
+        };
+        console.log("[S2Permissions] Voice backend response:", payload);
+      } catch (apiError) {
+        console.log("[S2Permissions] Voice backend call failed:", apiError);
+      }
     } catch (error) {
       setMicStatus("denied");
       savePermissionStatus("mic", "denied");

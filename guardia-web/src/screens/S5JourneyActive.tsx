@@ -10,6 +10,7 @@ import Map, {
 import PhoneFrame from "../components/layout/PhoneFrame";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useAppSelector } from "../store/hooks";
+import { useNavigate } from "react-router-dom";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
 type RouteResponse = {
@@ -20,6 +21,14 @@ type RouteResponse = {
     distance: number;
     duration: number;
   }>;
+};
+
+type GeolocateEvent = {
+  coords: {
+    latitude: number;
+    longitude: number;
+    heading: number | null;
+  };
 };
 
 const routeLayer: LayerProps = {
@@ -51,7 +60,11 @@ const routeOutlineLayer: LayerProps = {
 };
 
 export default function S5JourneyActive() {
+  const navigate = useNavigate();
   const destination = useAppSelector((state) => state.location.destination);
+  const emergencyContactPhone = useAppSelector(
+    (state) => state.profile.emergencyContactPhone,
+  );
 
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
@@ -200,7 +213,7 @@ export default function S5JourneyActive() {
     };
   }, [routeInfo]);
 
-  const handleGeolocate = useCallback((e: any) => {
+  const handleGeolocate = useCallback((e: GeolocateEvent) => {
     const coords = {
       latitude: e.coords.latitude,
       longitude: e.coords.longitude,
@@ -210,6 +223,33 @@ export default function S5JourneyActive() {
     setUserLocation(coords);
     console.log("User location updated:", coords);
   }, []);
+
+  const sanitizedEmergencyPhone = useMemo(() => {
+    const rawPhone = emergencyContactPhone.trim();
+    if (!rawPhone) {
+      return "";
+    }
+
+    const digitsOnly = rawPhone.replace(/\D/g, "");
+    if (!digitsOnly) {
+      return "";
+    }
+
+    return rawPhone.startsWith("+") ? `+${digitsOnly}` : digitsOnly;
+  }, [emergencyContactPhone]);
+
+  const handleSosPress = useCallback(() => {
+    if (!sanitizedEmergencyPhone) {
+      window.alert("Add an emergency contact number in Profile.");
+      return;
+    }
+
+    window.location.href = `tel:${encodeURIComponent(sanitizedEmergencyPhone)}`;
+  }, [sanitizedEmergencyPhone]);
+
+  const handleHomeSafePress = useCallback(() => {
+    navigate("/home");
+  }, [navigate]);
 
   const endPoint =
     destination?.lat != null && destination?.long != null
@@ -461,12 +501,14 @@ export default function S5JourneyActive() {
           <button
             className="btn-ghost-teal"
             style={{ height: 48, fontSize: 13, borderRadius: 12 }}
+            onClick={handleHomeSafePress}
           >
             ✅ I&apos;m Home Safe
           </button>
 
           <button
             className="btn-primary"
+            onClick={handleSosPress}
             style={{
               height: 48,
               fontSize: 13,
