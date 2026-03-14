@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
 import PlaceSearchInput from "../components/location/PlaceSearchInput";
-import MelbourneTime from "../components/layout/MelbourneTime";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { setOrigin } from "../store/locationSlice";
 import { useEffect, useMemo, useState } from "react";
@@ -369,21 +368,6 @@ const initialViewState = useMemo(() => {
 
   return (
     <PhoneFrame withNav>
-      <div className="status-bar">
-        <MelbourneTime className="status-time" />
-        <div className="status-icons">
-          <div className="signal-bars">
-            <span />
-            <span />
-            <span />
-          </div>
-          <span className="wifi-icon">▲</span>
-          <div className="battery">
-            <div className="battery-fill" />
-          </div>
-        </div>
-      </div>
-
       <div className="map-wrap" style={{ position: "relative" }}>
         {mapboxToken ? (
           <Map

@@ -1,25 +1,9 @@
 import { Link } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
-import MelbourneTime from "../components/layout/MelbourneTime";
 
 export default function S0Welcome() {
   return (
     <PhoneFrame>
-      <div className="status-bar">
-        <MelbourneTime className="status-time" />
-        <div className="status-icons">
-          <div className="signal-bars">
-            <span />
-            <span />
-            <span />
-          </div>
-          <span className="wifi-icon">▲</span>
-          <div className="battery">
-            <div className="battery-fill" />
-          </div>
-        </div>
-      </div>
-
       <div className="s0-body">
         <div className="s0-greeting">
           <span className="s0-wave">👋</span>
