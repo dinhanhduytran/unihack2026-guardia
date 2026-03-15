@@ -1,4 +1,4 @@
-# Guardia — Walk Home Safer
+<img src="guardia-web/public/favicon.svg" width="32" height="32" alt="Guardia shield" style="vertical-align:middle; margin-right:8px;"> Guardia — Walk Home Safer
 
 > A real-time safety companion for women walking alone at night.
 
