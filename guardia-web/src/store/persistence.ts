@@ -1,10 +1,12 @@
 export type StoredPermissionStatus = "idle" | "granted" | "denied" | "unsupported";
 export type PermissionKind = "location" | "mic";
+import type { RecentRoute } from "./locationSlice";
 
 const STORAGE_KEYS = {
   userName: "guardia.userName",
   emergencyContactName: "guardia.emergencyContactName",
   emergencyContactPhone: "guardia.emergencyContactPhone",
+  recentRoutes: "guardia.recentRoutes",
   locationPermission: "guardia.permission.location",
   micPermission: "guardia.permission.mic",
 } as const;
@@ -43,6 +45,24 @@ export const saveEmergencyContact = (contact: {
   if (!storage) return;
   storage.setItem(STORAGE_KEYS.emergencyContactName, contact.emergencyContactName);
   storage.setItem(STORAGE_KEYS.emergencyContactPhone, contact.emergencyContactPhone);
+};
+
+export const readRecentRoutes = (): RecentRoute[] => {
+  const storage = getStorage();
+  const raw = storage?.getItem(STORAGE_KEYS.recentRoutes);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as RecentRoute[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveRecentRoutes = (recentRoutes: RecentRoute[]) => {
+  const storage = getStorage();
+  if (!storage) return;
+  storage.setItem(STORAGE_KEYS.recentRoutes, JSON.stringify(recentRoutes));
 };
 
 export const readPermissionStatus = (kind: PermissionKind): StoredPermissionStatus => {

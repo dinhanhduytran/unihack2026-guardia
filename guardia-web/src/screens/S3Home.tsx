@@ -1,15 +1,26 @@
+import { useEffect } from "react";
 import PhoneFrame from "../components/layout/PhoneFrame";
 import PlaceSearchInput from "../components/location/PlaceSearchInput";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { useNavigate } from "react-router-dom";
-import { setDestination, setSelectedRoute } from "../store/locationSlice";
+import { loadRecentRoutes, setDestination, setSelectedRoute } from "../store/locationSlice";
+import { readRecentRoutes } from "../store/persistence";
 
 export default function S3Home() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const userName = useAppSelector((state) => state.profile.userName);
+  const recentRoutes = useAppSelector((state) => state.location.recentRoutes);
   const displayName = userName || "Sarah";
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || "S";
+
+  useEffect(() => {
+    if (recentRoutes.length > 0) return;
+    const storedRecentRoutes = readRecentRoutes();
+    if (storedRecentRoutes.length > 0) {
+      dispatch(loadRecentRoutes(storedRecentRoutes));
+    }
+  }, [dispatch, recentRoutes.length]);
 
   const handleHomeQuickDestination = () => {
     dispatch(
@@ -17,6 +28,20 @@ export default function S3Home() {
         address: "Home",
         lat: -37.8103,
         long: 144.9625,
+        placeId: null,
+      }),
+    );
+    dispatch(setSelectedRoute(null));
+    navigate("/map");
+  };
+
+  const handleRecentRoutePress = (lat: number | null, long: number | null, address: string) => {
+    if (lat == null || long == null) return;
+    dispatch(
+      setDestination({
+        address,
+        lat,
+        long,
         placeId: null,
       }),
     );
@@ -80,30 +105,59 @@ export default function S3Home() {
           <div className="chip">➕ Add</div>
         </div>
         <div className="section-head">Recent routes</div>
-        <div className="route-card">
-          <div className="route-icon">🚶</div>
-          <div className="route-info">
-            <div className="route-name">Home via Collins St</div>
-            <div className="route-meta">1.1 km · 14 min</div>
+        {recentRoutes.length === 0 ? (
+          <div className="route-card">
+            <div className="route-icon">🕘</div>
+            <div className="route-info">
+              <div className="route-name">No recent routes yet</div>
+              <div className="route-meta">Complete a journey to see it here</div>
+            </div>
           </div>
-          <span className="score score-hi">87</span>
-        </div>
-        <div className="route-card">
-          <div className="route-icon">🎓</div>
-          <div className="route-info">
-            <div className="route-name">RMIT Melbourne City</div>
-            <div className="route-meta">0.9 km · 11 min</div>
-          </div>
-          <span className="score score-med">59</span>
-        </div>
-        <div className="route-card">
-          <div className="route-icon">🚇</div>
-          <div className="route-info">
-            <div className="route-name">Flinders St Station</div>
-            <div className="route-meta">1.3 km · 16 min</div>
-          </div>
-          <span className="score score-hi">76</span>
-        </div>
+        ) : (
+          recentRoutes.map((route) => {
+            const scoreClass =
+              route.safety_score == null
+                ? "score-hi"
+                : route.safety_score >= 70
+                  ? "score-hi"
+                  : "score-med";
+            const routeMeta =
+              route.distance_km != null && route.eta_minutes != null
+                ? `${route.distance_km} km · ${route.eta_minutes} min`
+                : new Date(route.completedAt).toLocaleString();
+
+            return (
+              <button
+                key={route.id}
+                type="button"
+                className="route-card"
+                onClick={() =>
+                  handleRecentRoutePress(
+                    route.destination.lat,
+                    route.destination.long,
+                    route.destination.address,
+                  )
+                }
+                style={{
+                  width: "100%",
+                  textAlign: "left",
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                <div className="route-icon">🧭</div>
+                <div className="route-info">
+                  <div className="route-name">{route.destination.address}</div>
+                  <div className="route-meta">{routeMeta}</div>
+                </div>
+                {route.safety_score != null ? (
+                  <span className={`score ${scoreClass}`}>{route.safety_score}</span>
+                ) : null}
+              </button>
+            );
+          })
+        )}
         <div className="section-head" style={{ marginTop: 10 }}>Nearby alerts</div>
         <div className="alert-card">
           <span style={{ fontSize: 18 }}>⚠️</span>
