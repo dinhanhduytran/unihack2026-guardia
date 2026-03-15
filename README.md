@@ -2,6 +2,8 @@
 
 > A real-time safety companion for women walking alone at night.
 
+> **Designed for mobile.** Open on your phone browser for the best experience — no app install needed.
+
 ---
 
 ## The Problem
@@ -81,6 +83,8 @@ Recent incidents are weighted more heavily than older ones. The algorithm balanc
 ## Demo
 
 **Live app:** [safetyroute.vercel.app](https://safetyroute.vercel.app)
+
+> Open this link on your **phone browser** (Chrome or Safari). The app is designed for mobile use — portrait mode, one-handed, 390×844px viewport.
 
 Try a route:
 - Your location is detected automatically — just enter a destination (e.g. `Flinders Street Station, Melbourne`)
