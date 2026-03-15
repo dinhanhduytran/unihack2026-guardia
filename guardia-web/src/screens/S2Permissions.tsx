@@ -71,7 +71,13 @@ export default function S2Permissions() {
     <PhoneFrame>
       <div style={{ height: 52 }} />
       <div
-        style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 20, paddingTop: 16 }}
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 20,
+          paddingTop: 16,
+        }}
       >
         <svg
           width="28"
