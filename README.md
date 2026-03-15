@@ -82,11 +82,8 @@ Recent incidents are weighted more heavily than older ones. The algorithm balanc
 
 **Live app:** [safetyroute.vercel.app](https://safetyroute.vercel.app)
 
-**Backend API:** [jfpethmrbv.us-east-1.awsapprunner.com](https://jfpethmrbv.us-east-1.awsapprunner.com)
-
 Try a route:
-- From: your current location (tap "Use current location")
-- To: `Melbourne, Victoria, Australia`
+- Your location is detected automatically — just enter a destination (e.g. `Flinders Street Station, Melbourne`)
 
 ---
 
