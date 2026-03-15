@@ -5,42 +5,32 @@ import Map, {
   Source,
   type LayerProps,
 } from "react-map-gl/mapbox";
-import StreamingAvatar, {
-  AvatarQuality,
-  StreamingEvents,
-} from "@heygen/streaming-avatar";
+import StreamingAvatar, { AvatarQuality, StreamingEvents } from "@heygen/streaming-avatar";
 import { useNavigate } from "react-router-dom";
 import PhoneFrame from "../components/layout/PhoneFrame";
+import { addRecentRoute, type RecentRoute } from "../store/locationSlice";
+import { saveRecentRoutes } from "../store/persistence";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? "http://localhost:8000";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 
-function haversineMeters(
-  lat1: number,
-  lng1: number,
-  lat2: number,
-  lng2: number,
-): number {
+
+function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
 // Returns a CSS color: bright red when close, fading to grey at far distances
 function proximityColor(distanceMeters: number): string {
   const maxDist = 400; // beyond this → fully grey
-  const minDist = 30; // closer than this → max red
-  const t = Math.max(
-    0,
-    Math.min(1, 1 - (distanceMeters - minDist) / (maxDist - minDist)),
-  );
+  const minDist = 30;  // closer than this → max red
+  const t = Math.max(0, Math.min(1, 1 - (distanceMeters - minDist) / (maxDist - minDist)));
   const r = Math.round(232 * t + 150 * (1 - t)); // 232 = red, 150 = grey
   const g = Math.round(30 * t + 150 * (1 - t));
   const b = Math.round(30 * t + 150 * (1 - t));
@@ -48,6 +38,9 @@ function proximityColor(distanceMeters: number): string {
 }
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
+const INCIDENT_DISTANCE_METERS = 150;
+const INCIDENT_EVENT_COOLDOWN_MS = 5 * 60 * 1000;
+const INCIDENT_GLOBAL_COOLDOWN_MS = 15 * 1000;
 
 type RouteResponse = {
   routes: Array<{
@@ -88,12 +81,13 @@ const routeOutlineLayer: LayerProps = {
 };
 
 export default function S5JourneyActive() {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const origin = useAppSelector((state) => state.location.origin);
+  const recentRoutes = useAppSelector((state) => state.location.recentRoutes);
   const destination = useAppSelector((state) => state.location.destination);
   const storedRoute = useAppSelector((state) => state.location.selectedRoute);
-  const emergencyContactPhone = useAppSelector(
-    (state) => state.profile.emergencyContactPhone,
-  );
+  const emergencyContactPhone = useAppSelector((state) => state.profile.emergencyContactPhone);
 
   const [userLocation, setUserLocation] = useState<{
     latitude: number;
@@ -102,7 +96,7 @@ export default function S5JourneyActive() {
   } | null>(null);
 
   const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>(
-    storedRoute?.coordinates ?? [],
+    storedRoute?.coordinates ?? []
   );
 
   const [routeInfo, setRouteInfo] = useState<{
@@ -110,11 +104,8 @@ export default function S5JourneyActive() {
     duration: number;
   } | null>(
     storedRoute
-      ? {
-          distance: storedRoute.distance_km * 1000,
-          duration: storedRoute.eta_minutes * 60,
-        }
-      : null,
+      ? { distance: storedRoute.distance_km * 1000, duration: storedRoute.eta_minutes * 60 }
+      : null
   );
 
   const crimeEvents = storedRoute?.crime_events ?? [];
@@ -122,9 +113,7 @@ export default function S5JourneyActive() {
   // HeyGen companion popup
   const [companionOpen, setCompanionOpen] = useState(false);
   const [popupWidth, setPopupWidth] = useState(180);
-  const [companionStatus, setCompanionStatus] = useState<
-    "idle" | "loading" | "connected" | "error"
-  >("idle");
+  const [companionStatus, setCompanionStatus] = useState<"idle" | "loading" | "connected" | "error">("idle");
   const [micActive, setMicActive] = useState(false);
   const companionVideoRef = useRef<HTMLVideoElement>(null);
   const avatarRef = useRef<StreamingAvatar | null>(null);
@@ -132,27 +121,21 @@ export default function S5JourneyActive() {
   const startCompanion = async () => {
     setCompanionStatus("loading");
     try {
-      const res = await fetch(`${BACKEND_URL}/companion/start`, {
-        method: "POST",
-      });
+      const res = await fetch(`${BACKEND_URL}/companion/start`, { method: "POST" });
       if (!res.ok) throw new Error();
-      const data = (await res.json()) as { token: string };
+      const data = await res.json() as { token: string };
       const avatar = new StreamingAvatar({ token: data.token });
       avatarRef.current = avatar;
-      avatar.on(
-        StreamingEvents.STREAM_READY,
-        (event: CustomEvent<MediaStream>) => {
-          if (companionVideoRef.current && event.detail) {
-            companionVideoRef.current.srcObject = event.detail;
-            void companionVideoRef.current.play();
-          }
-          setCompanionStatus("connected");
-          avatar
-            .startVoiceChat({ isInputAudioMuted: false })
-            .then(() => setMicActive(true))
-            .catch(() => {});
-        },
-      );
+      avatar.on(StreamingEvents.STREAM_READY, (event: CustomEvent<MediaStream>) => {
+        if (companionVideoRef.current && event.detail) {
+          companionVideoRef.current.srcObject = event.detail;
+          void companionVideoRef.current.play();
+        }
+        setCompanionStatus("connected");
+        avatar.startVoiceChat({ isInputAudioMuted: false })
+          .then(() => setMicActive(true))
+          .catch(() => {});
+      });
       avatar.on(StreamingEvents.STREAM_DISCONNECTED, () => {
         setCompanionStatus("idle");
         setMicActive(false);
@@ -161,8 +144,7 @@ export default function S5JourneyActive() {
       await avatar.createStartAvatar({
         quality: AvatarQuality.Low,
         avatarName: "Ann_Therapist_public",
-        knowledgeBase:
-          "You are Guardia, a personal safety AI companion. The user is currently walking. Be warm, calm and reassuring. If they mention feeling unsafe or an emergency, urge them to press SOS immediately.",
+        knowledgeBase: "You are Guardia, a personal safety AI companion. The user is currently walking. Be warm, calm and reassuring. If they mention feeling unsafe or an emergency, urge them to press SOS immediately.",
       });
     } catch {
       setCompanionStatus("error");
@@ -173,48 +155,51 @@ export default function S5JourneyActive() {
     const avatar = avatarRef.current;
     avatarRef.current = null;
     if (!avatar) return;
-    try {
-      await avatar.closeVoiceChat();
-    } catch {}
-    try {
-      await avatar.stopAvatar();
-    } catch {}
+    try { await avatar.closeVoiceChat(); } catch {}
+    try { await avatar.stopAvatar(); } catch {}
     setCompanionStatus("idle");
     setMicActive(false);
     if (companionVideoRef.current) companionVideoRef.current.srcObject = null;
   };
 
   useEffect(() => {
-    return () => {
-      void avatarRef.current?.stopAvatar();
-    };
+    return () => { void avatarRef.current?.stopAvatar(); };
   }, []);
-  const warnedIds = useRef<Set<string>>(new Set());
+  const eventWarnedAtRef = useRef<globalThis.Map<string, number>>(new globalThis.Map());
+  const lastSpeechAtRef = useRef<number>(0);
 
   useEffect(() => {
     if (!userLocation || crimeEvents.length === 0) return;
+    const now = Date.now();
+
     crimeEvents.forEach((event) => {
-      const dist = haversineMeters(
-        userLocation.latitude,
-        userLocation.longitude,
-        event.lat,
-        event.lng,
+      const dist = haversineMeters(userLocation.latitude, userLocation.longitude, event.lat, event.lng);
+
+      if (dist >= INCIDENT_DISTANCE_METERS) return;
+
+      const lastWarnedAtForEvent = eventWarnedAtRef.current.get(event.id) ?? 0;
+      if (now - lastWarnedAtForEvent < INCIDENT_EVENT_COOLDOWN_MS) return;
+
+      if (now - lastSpeechAtRef.current < INCIDENT_GLOBAL_COOLDOWN_MS) return;
+
+      eventWarnedAtRef.current.set(event.id, now);
+      lastSpeechAtRef.current = now;
+
+      const label =
+        event.type === "SEXUAL_ASSAULT" ? "sexual assault"
+        : event.type === "UNWANTED_PHYSICAL_CONTACT" ? "unwanted physical contact"
+        : "street harassment";
+      const msg = new SpeechSynthesisUtterance(
+        `Warning! A ${label} incident was reported ${Math.round(dist)} metres ahead. Please stay alert.`
       );
-      if (dist < 150 && !warnedIds.current.has(event.id)) {
-        warnedIds.current.add(event.id);
-        const label =
-          event.type === "SEXUAL_ASSAULT"
-            ? "sexual assault"
-            : event.type === "UNWANTED_PHYSICAL_CONTACT"
-              ? "unwanted physical contact"
-              : "street harassment";
-        const msg = new SpeechSynthesisUtterance(
-          `Warning! A ${label} incident was reported ${Math.round(dist)} metres ahead. Please stay alert.`,
-        );
-        msg.rate = 1;
-        msg.pitch = 1;
-        window.speechSynthesis.speak(msg);
+      msg.rate = 1;
+      msg.pitch = 1;
+
+      // Prevent a backlog of repeated utterances when location updates rapidly.
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
       }
+      window.speechSynthesis.speak(msg);
     });
   }, [userLocation, crimeEvents]);
 
@@ -233,7 +218,7 @@ export default function S5JourneyActive() {
       try {
         const query = await fetch(
           `https://api.mapbox.com/directions/v5/mapbox/walking/${start[0]},${start[1]};${end[0]},${end[1]}?geometries=geojson&overview=full&steps=true&access_token=${MAPBOX_TOKEN}`,
-          { method: "GET" },
+          { method: "GET" }
         );
 
         if (!query.ok) {
@@ -257,7 +242,7 @@ export default function S5JourneyActive() {
         console.error("Error fetching route:", error);
       }
     },
-    [],
+    []
   );
 
   useEffect(() => {
@@ -290,7 +275,7 @@ export default function S5JourneyActive() {
         ) {
           fetchRoute(
             [coords.longitude, coords.latitude],
-            [destination.long, destination.lat],
+            [destination.long, destination.lat]
           );
         }
       },
@@ -301,18 +286,13 @@ export default function S5JourneyActive() {
         enableHighAccuracy: true,
         maximumAge: 0,
         timeout: 5000,
-      },
+      }
     );
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, [
-    fetchRoute,
-    routeCoordinates.length,
-    destination?.lat,
-    destination?.long,
-  ]);
+  }, [fetchRoute, routeCoordinates.length, destination?.lat, destination?.long]);
 
   const routeGeoJson = useMemo(
     () => ({
@@ -331,7 +311,7 @@ export default function S5JourneyActive() {
             ]
           : [],
     }),
-    [routeCoordinates],
+    [routeCoordinates]
   );
 
   const remainingInfo = useMemo(() => {
@@ -349,30 +329,67 @@ export default function S5JourneyActive() {
   }, [routeInfo]);
 
   const goHome = useCallback(() => {
+    if (destination?.lat != null && destination?.long != null) {
+      const completedRoute: RecentRoute = {
+        id: `recent-${Date.now()}`,
+        destination: {
+          address: destination.address || "Saved destination",
+          lat: destination.lat,
+          long: destination.long,
+          placeId: destination.placeId ?? null,
+        },
+        origin:
+          origin?.lat != null && origin?.long != null
+            ? origin
+            : userLocation
+              ? {
+                  address: "Current location",
+                  lat: userLocation.latitude,
+                  long: userLocation.longitude,
+                  placeId: null,
+                }
+              : null,
+        distance_km: storedRoute?.distance_km ?? null,
+        eta_minutes: storedRoute?.eta_minutes ?? null,
+        safety_score: storedRoute?.safety_score ?? null,
+        completedAt: new Date().toISOString(),
+      };
+
+      const nextRecentRoutes = [
+        completedRoute,
+        ...recentRoutes.filter((route) => {
+          const sameCoords =
+            route.destination.lat === completedRoute.destination.lat &&
+            route.destination.long === completedRoute.destination.long;
+          const sameAddress =
+            route.destination.address.trim().toLowerCase() ===
+            completedRoute.destination.address.trim().toLowerCase();
+          return !(sameCoords || sameAddress);
+        }),
+      ].slice(0, 5);
+
+      dispatch(addRecentRoute(completedRoute));
+      saveRecentRoutes(nextRecentRoutes);
+    }
+
     navigate("/home");
-  }, [navigate]);
+  }, [destination, dispatch, navigate, origin, recentRoutes, storedRoute, userLocation]);
 
   const handleEmergencyMicCall = useCallback(() => {
     const trimmedPhone = emergencyContactPhone.trim();
 
     if (!trimmedPhone) {
-      window.alert(
-        "No emergency contact number found. Please update it in your profile.",
-      );
+      window.alert("No emergency contact number found. Please update it in your profile.");
       return;
     }
 
     const digitsOnly = trimmedPhone.replace(/\D/g, "");
     if (!digitsOnly) {
-      window.alert(
-        "Emergency contact number is invalid. Please update it in your profile.",
-      );
+      window.alert("Emergency contact number is invalid. Please update it in your profile.");
       return;
     }
 
-    const dialNumber = trimmedPhone.startsWith("+")
-      ? `+${digitsOnly}`
-      : digitsOnly;
+    const dialNumber = trimmedPhone.startsWith("+") ? `+${digitsOnly}` : digitsOnly;
     window.location.href = `tel:${dialNumber}`;
   }, [emergencyContactPhone]);
 
@@ -380,8 +397,8 @@ export default function S5JourneyActive() {
     destination?.lat != null && destination?.long != null
       ? ([destination.long, destination.lat] as [number, number])
       : routeCoordinates.length > 0
-        ? routeCoordinates[routeCoordinates.length - 1]
-        : null;
+      ? routeCoordinates[routeCoordinates.length - 1]
+      : null;
 
   return (
     <PhoneFrame withNav>
@@ -421,22 +438,12 @@ export default function S5JourneyActive() {
 
             {crimeEvents.map((event) => {
               const dist = userLocation
-                ? haversineMeters(
-                    userLocation.latitude,
-                    userLocation.longitude,
-                    event.lat,
-                    event.lng,
-                  )
+                ? haversineMeters(userLocation.latitude, userLocation.longitude, event.lat, event.lng)
                 : 999;
               const color = proximityColor(dist);
               const scale = dist < 100 ? 1.4 : dist < 200 ? 1.15 : 1;
               return (
-                <Marker
-                  key={event.id}
-                  longitude={event.lng}
-                  latitude={event.lat}
-                  anchor="center"
-                >
+                <Marker key={event.id} longitude={event.lng} latitude={event.lat} anchor="center">
                   <div
                     title={`${event.type} · ${event.date} · ${Math.round(dist)}m away`}
                     style={{
@@ -472,7 +479,7 @@ export default function S5JourneyActive() {
                     width: 32,
                     height: 32,
                     borderRadius: "50%",
-                    backgroundColor: "#FF6B6B",
+                    backgroundColor: "#E8735A",
                     border: "3px solid white",
                     boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                     display: "flex",
@@ -544,7 +551,7 @@ export default function S5JourneyActive() {
                 </div>
               </Marker>
             )}
-            {/* 
+{/* 
             <GeolocateControl
               position="top-right"
               positionOptions={{ enableHighAccuracy: true }}
@@ -581,169 +588,57 @@ export default function S5JourneyActive() {
 
       {/* Companion popup - above bottom sheet, anchored bottom-left */}
       {companionOpen && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 220,
-            left: 12,
-            zIndex: 50,
-            width: popupWidth,
-            borderRadius: 16,
-            overflow: "hidden",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-            background: "#111",
-            transition: "width 0.2s ease",
-          }}
-        >
+        <div style={{
+          position: "absolute", bottom: 220, left: 12, zIndex: 50,
+          width: popupWidth, borderRadius: 16, overflow: "hidden",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+          background: "#111",
+          transition: "width 0.2s ease",
+        }}>
           {/* Zoom controls */}
-          <div
-            style={{
-              position: "absolute",
-              top: 6,
-              right: 6,
-              zIndex: 10,
-              display: "flex",
-              gap: 4,
-            }}
-          >
+          <div style={{ position: "absolute", top: 6, right: 6, zIndex: 10, display: "flex", gap: 4 }}>
             <button
               onClick={() => setPopupWidth((w) => Math.min(w + 40, 320))}
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.2)",
-                color: "#fff",
-                border: "none",
-                fontSize: 14,
-                cursor: "pointer",
-                lineHeight: 1,
-              }}
-            >
-              +
-            </button>
+              style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", fontSize: 14, cursor: "pointer", lineHeight: 1 }}
+            >+</button>
             <button
               onClick={() => setPopupWidth((w) => Math.max(w - 40, 120))}
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.2)",
-                color: "#fff",
-                border: "none",
-                fontSize: 14,
-                cursor: "pointer",
-                lineHeight: 1,
-              }}
-            >
-              −
-            </button>
+              style={{ width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.2)", color: "#fff", border: "none", fontSize: 14, cursor: "pointer", lineHeight: 1 }}
+            >−</button>
           </div>
-          <div
-            style={{ width: "100%", aspectRatio: "3/4", position: "relative" }}
-          >
+          <div style={{ width: "100%", aspectRatio: "3/4", position: "relative" }}>
             <video
               ref={companionVideoRef}
               autoPlay
               playsInline
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "cover",
-                display: companionStatus === "connected" ? "block" : "none",
-              }}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: companionStatus === "connected" ? "block" : "none" }}
             />
             {companionStatus !== "connected" && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 8,
-                }}
-              >
+              <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 <div style={{ fontSize: 32 }}>🛡️</div>
-                {companionStatus === "loading" && (
-                  <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>
-                    Connecting...
-                  </div>
-                )}
+                {companionStatus === "loading" && <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Connecting...</div>}
                 {companionStatus === "error" && (
                   <>
-                    <div style={{ color: "#FF6B6B", fontSize: 11 }}>Failed</div>
-                    <button
-                      onClick={() => void startCompanion()}
-                      style={{
-                        fontSize: 10,
-                        padding: "4px 10px",
-                        borderRadius: 999,
-                        background: "#FF6B6B",
-                        color: "#fff",
-                        border: "none",
-                        cursor: "pointer",
-                      }}
-                    >
-                      Retry
-                    </button>
+                    <div style={{ color: "#E8735A", fontSize: 11 }}>Failed</div>
+                    <button onClick={() => void startCompanion()} style={{ fontSize: 10, padding: "4px 10px", borderRadius: 999, background: "#E8735A", color: "#fff", border: "none", cursor: "pointer" }}>Retry</button>
                   </>
                 )}
               </div>
             )}
             {companionStatus === "connected" && (
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 6,
-                  left: 0,
-                  right: 0,
-                  display: "flex",
-                  justifyContent: "center",
-                  gap: 6,
-                }}
-              >
+              <div style={{ position: "absolute", bottom: 6, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 6 }}>
                 <button
                   onClick={() => {
-                    if (micActive) {
-                      void avatarRef.current
-                        ?.closeVoiceChat()
-                        .then(() => setMicActive(false));
-                    } else {
-                      void avatarRef.current
-                        ?.startVoiceChat({ isInputAudioMuted: false })
-                        .then(() => setMicActive(true));
-                    }
+                    if (micActive) { void avatarRef.current?.closeVoiceChat().then(() => setMicActive(false)); }
+                    else { void avatarRef.current?.startVoiceChat({ isInputAudioMuted: false }).then(() => setMicActive(true)); }
                   }}
-                  style={{
-                    fontSize: 10,
-                    padding: "4px 8px",
-                    borderRadius: 999,
-                    background: micActive
-                      ? "rgba(16,185,129,0.8)"
-                      : "rgba(255,255,255,0.2)",
-                    color: "#fff",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
+                  style={{ fontSize: 10, padding: "4px 8px", borderRadius: 999, background: micActive ? "rgba(16,185,129,0.8)" : "rgba(255,255,255,0.2)", color: "#fff", border: "none", cursor: "pointer" }}
                 >
                   {micActive ? "🎙 On" : "🎙 Off"}
                 </button>
                 <button
-                  onClick={() => {
-                    void stopCompanion();
-                    setCompanionOpen(false);
-                  }}
-                  style={{
-                    fontSize: 10,
-                    padding: "4px 8px",
-                    borderRadius: 999,
-                    background: "rgba(255,107,107,0.85)",
-                    color: "#fff",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
+                  onClick={() => { void stopCompanion(); setCompanionOpen(false); }}
+                  style={{ fontSize: 10, padding: "4px 8px", borderRadius: 999, background: "rgba(232,115,90,0.85)", color: "#fff", border: "none", cursor: "pointer" }}
                 >
                   End
                 </button>
@@ -754,9 +649,7 @@ export default function S5JourneyActive() {
       )}
 
       <div className="hud-row" style={{ alignItems: "flex-start" }}>
-        <div
-          style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}
-        >
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
           <div className="hud-card">
             <div className="hud-lbl">ETA</div>
             <div className="hud-val">{remainingInfo.eta}</div>
@@ -781,13 +674,7 @@ export default function S5JourneyActive() {
               marginLeft: 6,
             }}
           >
-            <svg
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M12 3.5a3 3 0 0 1 3 3v4.5a3 3 0 0 1-6 0V6.5a3 3 0 0 1 3-3Z"
                 stroke="currentColor"
@@ -815,15 +702,7 @@ export default function S5JourneyActive() {
 
         <div className="hud-card">
           <div className="hud-lbl">Safety</div>
-          <div
-            className="hud-val"
-            style={{
-              color:
-                storedRoute && storedRoute.safety_score >= 60
-                  ? "var(--teal)"
-                  : "var(--coral)",
-            }}
-          >
+          <div className="hud-val" style={{ color: storedRoute && storedRoute.safety_score >= 60 ? "var(--teal)" : "var(--coral)" }}>
             {storedRoute?.safety_score ?? "—"}
           </div>
           <div
@@ -903,53 +782,29 @@ export default function S5JourneyActive() {
           <button
             onClick={() => {
               setCompanionOpen((o) => !o);
-              if (!companionOpen && companionStatus === "idle")
-                void startCompanion();
+              if (!companionOpen && companionStatus === "idle") void startCompanion();
             }}
             style={{
-              height: 48,
-              fontSize: 13,
-              borderRadius: 12,
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background:
-                companionStatus === "connected"
-                  ? "#10b981"
-                  : "rgba(255,107,107,0.15)",
-              color: companionStatus === "connected" ? "#fff" : "#FF6B6B",
+              height: 48, fontSize: 13, borderRadius: 12, border: "none", cursor: "pointer",
+              background: companionStatus === "connected" ? "#10b981" : "rgba(232,115,90,0.15)",
+              color: companionStatus === "connected" ? "#fff" : "#E8735A",
               fontWeight: 700,
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6, flexShrink: 0 }}>
-              <path d="M16 2 L28 7 L28 16 C28 22.5 22.5 27.5 16 30 C9.5 27.5 4 22.5 4 16 L4 7 Z" fill="currentColor" fillOpacity="0.9"/>
-              <path d="M11 16 L14.5 19.5 L21 13" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            AI Call
+            🛡️ AI Call
           </button>
 
           <button
             className="btn-ghost-teal"
-            style={{ height: 48, fontSize: 13, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}
+            style={{ height: 48, fontSize: 13, borderRadius: 12 }}
             onClick={goHome}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6, flexShrink: 0 }}>
-              <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.8"/>
-              <path d="M7.5 12 L10.5 15 L16.5 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Safe
+            ✅ Safe
           </button>
 
           <button
             className="btn-primary"
-            style={{
-              height: 48,
-              fontSize: 13,
-              borderRadius: 12,
-              background: "linear-gradient(135deg,#FF6B6B,#e53e3e)",
-            }}
+            style={{ height: 48, fontSize: 13, borderRadius: 12, background: "linear-gradient(135deg,#E8735A,#c0392b)" }}
             onClick={goHome}
           >
             Exit

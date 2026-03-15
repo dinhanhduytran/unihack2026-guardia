@@ -1,10 +1,24 @@
 export type StoredPermissionStatus = "idle" | "granted" | "denied" | "unsupported";
 export type PermissionKind = "location" | "mic";
+import type { RecentRoute } from "./locationSlice";
+
+export type FavoritePlace = {
+  id: string;
+  name: string;
+  iconKey: string;
+  address: string;
+  lat: number;
+  long: number;
+  placeId?: string | null;
+  createdAt: string;
+};
 
 const STORAGE_KEYS = {
   userName: "guardia.userName",
   emergencyContactName: "guardia.emergencyContactName",
   emergencyContactPhone: "guardia.emergencyContactPhone",
+  recentRoutes: "guardia.recentRoutes",
+  favoritePlaces: "guardia.favoritePlaces",
   locationPermission: "guardia.permission.location",
   micPermission: "guardia.permission.mic",
 } as const;
@@ -43,6 +57,42 @@ export const saveEmergencyContact = (contact: {
   if (!storage) return;
   storage.setItem(STORAGE_KEYS.emergencyContactName, contact.emergencyContactName);
   storage.setItem(STORAGE_KEYS.emergencyContactPhone, contact.emergencyContactPhone);
+};
+
+export const readRecentRoutes = (): RecentRoute[] => {
+  const storage = getStorage();
+  const raw = storage?.getItem(STORAGE_KEYS.recentRoutes);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as RecentRoute[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveRecentRoutes = (recentRoutes: RecentRoute[]) => {
+  const storage = getStorage();
+  if (!storage) return;
+  storage.setItem(STORAGE_KEYS.recentRoutes, JSON.stringify(recentRoutes));
+};
+
+export const readFavoritePlaces = (): FavoritePlace[] => {
+  const storage = getStorage();
+  const raw = storage?.getItem(STORAGE_KEYS.favoritePlaces);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw) as FavoritePlace[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveFavoritePlaces = (favoritePlaces: FavoritePlace[]) => {
+  const storage = getStorage();
+  if (!storage) return;
+  storage.setItem(STORAGE_KEYS.favoritePlaces, JSON.stringify(favoritePlaces));
 };
 
 export const readPermissionStatus = (kind: PermissionKind): StoredPermissionStatus => {

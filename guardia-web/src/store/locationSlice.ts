@@ -23,16 +23,28 @@ export type SelectedRoute = {
   eta_minutes: number;
 };
 
+export type RecentRoute = {
+  id: string;
+  destination: SavedLocation;
+  origin: SavedLocation | null;
+  distance_km: number | null;
+  eta_minutes: number | null;
+  safety_score: number | null;
+  completedAt: string;
+};
+
 type LocationState = {
   origin: SavedLocation | null;
   destination: SavedLocation | null;
   selectedRoute: SelectedRoute | null;
+  recentRoutes: RecentRoute[];
 };
 
 const initialState: LocationState = {
   origin: null,
   destination: null,
   selectedRoute: null,
+  recentRoutes: [],
 };
 
 const locationSlice = createSlice({
@@ -48,6 +60,22 @@ const locationSlice = createSlice({
     setSelectedRoute: (state, action: PayloadAction<SelectedRoute | null>) => {
       state.selectedRoute = action.payload;
     },
+    loadRecentRoutes: (state, action: PayloadAction<RecentRoute[]>) => {
+      state.recentRoutes = action.payload;
+    },
+    addRecentRoute: (state, action: PayloadAction<RecentRoute>) => {
+      const candidate = action.payload;
+      const deduped = state.recentRoutes.filter((route) => {
+        const sameCoords =
+          route.destination.lat === candidate.destination.lat &&
+          route.destination.long === candidate.destination.long;
+        const sameAddress =
+          route.destination.address.trim().toLowerCase() ===
+          candidate.destination.address.trim().toLowerCase();
+        return !(sameCoords || sameAddress);
+      });
+      state.recentRoutes = [candidate, ...deduped].slice(0, 5);
+    },
     clearLocations: (state) => {
       state.origin = null;
       state.destination = null;
@@ -56,5 +84,12 @@ const locationSlice = createSlice({
   },
 });
 
-export const { setOrigin, setDestination, setSelectedRoute, clearLocations } = locationSlice.actions;
+export const {
+  setOrigin,
+  setDestination,
+  setSelectedRoute,
+  loadRecentRoutes,
+  addRecentRoute,
+  clearLocations,
+} = locationSlice.actions;
 export default locationSlice.reducer;
