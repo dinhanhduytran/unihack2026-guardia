@@ -1,13 +1,15 @@
 import { useState } from "react";
 import PhoneFrame from "../components/layout/PhoneFrame";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { updateEmergencyContact } from "../store/profileSlice";
-import { saveEmergencyContact } from "../store/persistence";
+import { setOnboardingProfile } from "../store/profileSlice";
+import { saveOnboardingProfile } from "../store/persistence";
 
 export default function Profile() {
   const dispatch = useAppDispatch();
+  const userNameFromStore = useAppSelector((state) => state.profile.userName);
   const emergencyContactNameFromStore = useAppSelector((state) => state.profile.emergencyContactName);
   const emergencyContactPhoneFromStore = useAppSelector((state) => state.profile.emergencyContactPhone);
+  const [userName, setUserName] = useState(userNameFromStore);
   const [emergencyName, setEmergencyName] = useState(emergencyContactNameFromStore);
   const [emergencyNumber, setEmergencyNumber] = useState(emergencyContactPhoneFromStore);
   const [saved, setSaved] = useState(false);
@@ -16,17 +18,20 @@ export default function Profile() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     dispatch(
-      updateEmergencyContact({
+      setOnboardingProfile({
+        userName: userName.trim(),
         emergencyContactName: emergencyName.trim(),
         emergencyContactPhone: emergencyNumber.trim(),
       }),
     );
-    saveEmergencyContact({
+    saveOnboardingProfile({
+      userName: userName.trim(),
       emergencyContactName: emergencyName.trim(),
       emergencyContactPhone: emergencyNumber.trim(),
     });
     setSaved(true);
-    console.log("[Profile] Emergency contact updated:", {
+    console.log("[Profile] Profile updated:", {
+      userName,
       emergencyContactName: emergencyName,
       emergencyContactPhone: emergencyNumber,
     });
@@ -40,6 +45,19 @@ export default function Profile() {
           <p className="profile-subtitle">Update your emergency contact details.</p>
 
           <form onSubmit={handleSubmit}>
+            <div className="input-group">
+              <label className="input-label">Username</label>
+              <input
+                className="input-field"
+                type="text"
+                value={userName}
+                onChange={(event) => {
+                  setUserName(event.target.value);
+                  if (saved) setSaved(false);
+                }}
+                placeholder="Your name"
+              />
+            </div>
             <div className="input-group">
               <label className="input-label">Emergency Contact Name</label>
               <input
@@ -67,11 +85,11 @@ export default function Profile() {
               />
             </div>
             <button className="btn-primary" type="submit">
-              Save Contact
+              Save Profile
             </button>
           </form>
 
-          {saved ? <p className="profile-success">Emergency contact saved.</p> : null}
+          {saved ? <p className="profile-success">Profile saved.</p> : null}
         </div>
       </div>
     </PhoneFrame>
