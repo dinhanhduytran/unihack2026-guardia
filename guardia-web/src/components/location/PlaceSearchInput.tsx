@@ -55,8 +55,8 @@ export default function PlaceSearchInput({
   kind,
   placeholder,
   className,
-  iconLeft = "📍",
-  iconRight = "🔍",
+  iconLeft: _iconLeft = "📍",
+  iconRight: _iconRight = "🔍",
   onLocationSelected,
 }: Props) {
   const dispatch = useAppDispatch();

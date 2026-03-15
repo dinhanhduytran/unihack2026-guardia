@@ -60,17 +60,21 @@ def load_csv_to_elasticsearch(filepath):
     import hashlib
 
     count = es.count(index="recorded_events")["count"]
-    if count > 0:
+    if count >= 10000:
         print(f"Already have {count} events in ES — skipping load")
         return
 
     with open(filepath, newline="") as f:
         rows = list(csv.DictReader(f))
 
+    def make_id(i, row):
+        key = f"{row['latitude']}{row['longitude']}{row['date']}{row['type']}"
+        return f"{i}_{hashlib.md5(key.encode()).hexdigest()}"
+
     actions = [
         {
             "_index": "recorded_events",
-            "_id": hashlib.md5(f"{row['latitude']}{row['longitude']}{row['date']}{row['type']}".encode()).hexdigest(),
+            "_id": make_id(i, row),
             "_source": {
                 "location": {
                     "lat": float(row["latitude"]),
@@ -81,7 +85,7 @@ def load_csv_to_elasticsearch(filepath):
                 "description": ENUM_DESCRIPTION.get(row["type"], ""),
             }
         }
-        for row in rows
+        for i, row in enumerate(rows)
     ]
 
     success, failed = bulk(es, tqdm(actions, desc="Loading crime events", unit="event"))
@@ -230,47 +234,3 @@ def get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat, mode="driving"
     res.raise_for_status()
     return res.json().get("routes", [])
 
-
-if __name__ == "__main__":
-    es.indices.delete(index="recorded_events")
-    create_index()
-    load_csv_to_elasticsearch("melbourne_safety.csv")
-
-    # Melbourne CBD: Flinders St → RMIT
-    origin_lat, origin_lng = -37.8183, 144.9671
-    dest_lat, dest_lng     = -37.8080, 144.9631
-
-    import json
-    mapbox_routes = get_mapbox_routes(origin_lng, origin_lat, dest_lng, dest_lat)
-    scored = rank_routes(mapbox_routes, radius="150m", recent_days=90)
-    results = []
-    for route in scored:
-        coords = route["routes"]  # [[lng, lat], ...]
-        points = [
-            {
-                "geometry": {"coordinates": coord, "type": "Point"},
-                "distance": 0,
-                "duration": 0,
-                "weight": route["safety_score"],
-            }
-            for coord in coords
-        ]
-        crime_events = [
-            {
-                "id": e["event_id"],
-                "lat": 0,
-                "lng": 0,
-                "type": e["type"],
-                "date": e["date"],
-            }
-            for e in route.get("route_events", [])
-        ]
-        results.append({
-            "distance": route["distance_km"] * 1000,
-            "duration": route["eta_minutes"] * 60,
-            "safety_score": route["safety_score"],
-            "points": points,
-            "crime_events": crime_events,
-        })
-
-    print(json.dumps(results, indent=2))
