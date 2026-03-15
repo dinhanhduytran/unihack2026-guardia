@@ -38,6 +38,9 @@ function proximityColor(distanceMeters: number): string {
 }
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
+const INCIDENT_DISTANCE_METERS = 150;
+const INCIDENT_EVENT_COOLDOWN_MS = 5 * 60 * 1000;
+const INCIDENT_GLOBAL_COOLDOWN_MS = 15 * 1000;
 
 type RouteResponse = {
   routes: Array<{
@@ -162,25 +165,41 @@ export default function S5JourneyActive() {
   useEffect(() => {
     return () => { void avatarRef.current?.stopAvatar(); };
   }, []);
-  const warnedIds = useRef<Set<string>>(new Set());
+  const eventWarnedAtRef = useRef<globalThis.Map<string, number>>(new globalThis.Map());
+  const lastSpeechAtRef = useRef<number>(0);
 
   useEffect(() => {
     if (!userLocation || crimeEvents.length === 0) return;
+    const now = Date.now();
+
     crimeEvents.forEach((event) => {
       const dist = haversineMeters(userLocation.latitude, userLocation.longitude, event.lat, event.lng);
-      if (dist < 150 && !warnedIds.current.has(event.id)) {
-        warnedIds.current.add(event.id);
-        const label =
-          event.type === "SEXUAL_ASSAULT" ? "sexual assault"
-          : event.type === "UNWANTED_PHYSICAL_CONTACT" ? "unwanted physical contact"
-          : "street harassment";
-        const msg = new SpeechSynthesisUtterance(
-          `Warning! A ${label} incident was reported ${Math.round(dist)} metres ahead. Please stay alert.`
-        );
-        msg.rate = 1;
-        msg.pitch = 1;
-        window.speechSynthesis.speak(msg);
+
+      if (dist >= INCIDENT_DISTANCE_METERS) return;
+
+      const lastWarnedAtForEvent = eventWarnedAtRef.current.get(event.id) ?? 0;
+      if (now - lastWarnedAtForEvent < INCIDENT_EVENT_COOLDOWN_MS) return;
+
+      if (now - lastSpeechAtRef.current < INCIDENT_GLOBAL_COOLDOWN_MS) return;
+
+      eventWarnedAtRef.current.set(event.id, now);
+      lastSpeechAtRef.current = now;
+
+      const label =
+        event.type === "SEXUAL_ASSAULT" ? "sexual assault"
+        : event.type === "UNWANTED_PHYSICAL_CONTACT" ? "unwanted physical contact"
+        : "street harassment";
+      const msg = new SpeechSynthesisUtterance(
+        `Warning! A ${label} incident was reported ${Math.round(dist)} metres ahead. Please stay alert.`
+      );
+      msg.rate = 1;
+      msg.pitch = 1;
+
+      // Prevent a backlog of repeated utterances when location updates rapidly.
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
       }
+      window.speechSynthesis.speak(msg);
     });
   }, [userLocation, crimeEvents]);
 
