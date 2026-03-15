@@ -12,6 +12,29 @@ import {
   type FavoritePlace,
 } from "../store/persistence";
 
+const MELBOURNE_TIMEZONE = "Australia/Melbourne";
+
+function getMelbourneHour() {
+  try {
+    const hourString = new Intl.DateTimeFormat("en-AU", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: MELBOURNE_TIMEZONE,
+    }).format(new Date());
+    const hour = Number.parseInt(hourString, 10);
+    return Number.isNaN(hour) ? new Date().getHours() : hour;
+  } catch {
+    return new Date().getHours();
+  }
+}
+
+function getGreetingByHour(hour: number) {
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 17) return "Good afternoon";
+  if (hour >= 17 && hour < 21) return "Good evening";
+  return "Good night";
+}
+
 const FAVORITE_ICONS = [
   { key: "home", emoji: "🏠", label: "Home" },
   { key: "school", emoji: "🎓", label: "School" },
@@ -34,6 +57,7 @@ export default function S3Home() {
   const recentRoutes = useAppSelector((state) => state.location.recentRoutes);
   const displayName = userName || "Sarah";
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || "S";
+  const [greeting, setGreeting] = useState(() => getGreetingByHour(getMelbourneHour()));
   const [favoritePlaces, setFavoritePlaces] = useState<FavoritePlace[]>([]);
   const [showFavoriteModal, setShowFavoriteModal] = useState(false);
   const [favoriteName, setFavoriteName] = useState("");
@@ -52,6 +76,15 @@ export default function S3Home() {
 
   useEffect(() => {
     setFavoritePlaces(readFavoritePlaces());
+  }, []);
+
+  useEffect(() => {
+    const updateGreeting = () => {
+      setGreeting(getGreetingByHour(getMelbourneHour()));
+    };
+    updateGreeting();
+    const intervalId = window.setInterval(updateGreeting, 60_000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   const handleHomeQuickDestination = () => {
@@ -135,7 +168,7 @@ export default function S3Home() {
     <PhoneFrame withNav>
       <div className="home-header">
         <div>
-          <div className="greeting-small">Good evening 👋</div>
+          <div className="greeting-small">{greeting} 👋</div>
           <div className="greeting-name">{displayName}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
