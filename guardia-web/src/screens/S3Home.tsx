@@ -261,7 +261,7 @@ export default function S3Home() {
             );
           })
         )}
-        <div className="section-head" style={{ marginTop: 10 }}>Nearby alerts</div>
+        {/* <div className="section-head" style={{ marginTop: 10 }}>Nearby alerts</div>
         <div className="alert-card">
           <span style={{ fontSize: 18 }}>⚠️</span>
           <div>
@@ -270,7 +270,7 @@ export default function S3Home() {
             </div>
             <div className="alert-link">View on map →</div>
           </div>
-        </div>
+        </div> */}
       </div>
       {showFavoriteModal ? (
         <div className="favorite-modal-backdrop" role="dialog" aria-modal="true">
