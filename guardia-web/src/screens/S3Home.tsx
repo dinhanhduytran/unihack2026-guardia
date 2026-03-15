@@ -1,13 +1,28 @@
 import PhoneFrame from "../components/layout/PhoneFrame";
 import PlaceSearchInput from "../components/location/PlaceSearchInput";
-import { useAppSelector } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { useNavigate } from "react-router-dom";
+import { setDestination, setSelectedRoute } from "../store/locationSlice";
 
 export default function S3Home() {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const userName = useAppSelector((state) => state.profile.userName);
   const displayName = userName || "Sarah";
   const avatarInitial = displayName.trim().charAt(0).toUpperCase() || "S";
+
+  const handleHomeQuickDestination = () => {
+    dispatch(
+      setDestination({
+        address: "Home",
+        lat: -37.8103,
+        long: 144.9625,
+        placeId: null,
+      }),
+    );
+    dispatch(setSelectedRoute(null));
+    navigate("/map");
+  };
 
   return (
     <PhoneFrame withNav>
@@ -54,9 +69,14 @@ export default function S3Home() {
       <div className="home-scroll">
         <div className="section-head">Quick destinations</div>
         <div className="chips-row">
-          <div className="chip active">🏠 Home</div>
-          <div className="chip">🎓 RMIT</div>
-          <div className="chip">🚇 Flinders St</div>
+          <button
+            type="button"
+            className="chip active"
+            onClick={handleHomeQuickDestination}
+            style={{ border: "none", cursor: "pointer" }}
+          >
+            🏠 Home
+          </button>
           <div className="chip">➕ Add</div>
         </div>
         <div className="section-head">Recent routes</div>
