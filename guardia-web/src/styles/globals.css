@@ -635,6 +635,38 @@ body {
   border-color: rgba(255, 107, 107, 0.4);
   color: var(--coral);
 }
+.favorite-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: flex-end;
+}
+.favorite-modal-card {
+  width: 100%;
+  background: var(--surface);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 16px 16px 20px;
+  box-shadow: 0 -8px 24px rgba(17, 24, 39, 0.18);
+  max-height: 78%;
+  overflow-y: auto;
+}
+.favorite-modal-title {
+  font-family: "Lora", serif;
+  font-size: 21px;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+.favorite-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.favorite-modal-actions > * {
+  flex: 1;
+}
 .route-card {
   background: var(--surface);
   border: 1.5px solid var(--border-neutral);

@@ -31,6 +31,7 @@ type Props = {
   iconLeft?: string;
   iconRight?: string;
   onLocationSelected?: (location: SavedLocation) => void;
+  commitToStore?: boolean;
 };
 
 // iconLeft / iconRight props are kept for API compatibility but SVG icons are always rendered
@@ -58,15 +59,17 @@ export default function PlaceSearchInput({
   iconLeft = "📍",
   iconRight = "🔍",
   onLocationSelected,
+  commitToStore = true,
 }: Props) {
   const dispatch = useAppDispatch();
   const origin = useAppSelector((state) => state.location.origin);
   const destination = useAppSelector((state) => state.location.destination);
-  const selected = kind === "origin" ? origin : destination;
+  const selected = commitToStore ? (kind === "origin" ? origin : destination) : null;
   const [value, setValue] = useState(selected?.address ?? "");
   const [results, setResults] = useState<MapboxFeature[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   const mapboxToken = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN ?? "";
   const hasToken = mapboxToken.trim().length > 0;
@@ -142,10 +145,12 @@ export default function PlaceSearchInput({
   const shouldShowNoResults =
     hasToken && queryLength >= MIN_QUERY_LENGTH && !loading && !error && suggestions.length === 0;
   const showDropdown =
+    isFocused &&
     queryLength >= MIN_QUERY_LENGTH &&
     (loading || error != null || suggestions.length > 0 || shouldShowNoResults);
 
   const saveLocation = (location: SavedLocation | null) => {
+    if (!commitToStore) return;
     if (kind === "origin") {
       dispatch(setOrigin(location));
       return;
@@ -220,7 +225,11 @@ export default function PlaceSearchInput({
           onChange={(event) => {
             setValue(event.target.value);
           }}
-          onBlur={saveManualInput}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => {
+            setIsFocused(false);
+            saveManualInput();
+          }}
         />
         <span style={{ color: "var(--text-muted)", display: "flex", alignItems: "center", flexShrink: 0 }}>
           <SearchIcon />
