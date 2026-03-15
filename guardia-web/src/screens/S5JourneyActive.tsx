@@ -665,7 +665,23 @@ export default function S5JourneyActive() {
                   gap: 8,
                 }}
               >
-                <div style={{ fontSize: 32 }}>🛡️</div>
+                <svg width="32" height="36" viewBox="0 0 56 62" fill="none" aria-hidden="true">
+                  <path
+                    d="M28 2L4 12v20c0 15 11 28.5 24 31C41 59.5 52 46 52 32V12L28 2Z"
+                    fill="url(#shieldGradActive)"
+                  />
+                  <path
+                    d="M28 41s-13-8-13-16a9 9 0 0 1 13-8 9 9 0 0 1 13 8c0 8-13 16-13 16Z"
+                    fill="white"
+                    opacity="0.88"
+                  />
+                  <defs>
+                    <linearGradient id="shieldGradActive" x1="4" y1="2" x2="52" y2="62" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#FF6B6B" />
+                      <stop offset="1" stopColor="#FF8E8E" />
+                    </linearGradient>
+                  </defs>
+                </svg>
                 {companionStatus === "loading" && (
                   <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>
                     Connecting...
