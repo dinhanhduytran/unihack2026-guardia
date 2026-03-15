@@ -99,7 +99,10 @@ export default function S6Companion() {
 
           {status !== "connected" && (
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12 }}>
-              <div style={{ fontSize: 48 }}>🛡️</div>
+              <svg width="48" height="48" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M16 2 L28 7 L28 16 C28 22.5 22.5 27.5 16 30 C9.5 27.5 4 22.5 4 16 L4 7 Z" fill="#FF6B6B"/>
+                <path d="M11 16 L14.5 19.5 L21 13" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
               <div style={{ color: "#fff", fontWeight: 700, fontSize: 16 }}>Guardia AI Companion</div>
               {status === "loading" && (
                 <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 13 }}>Connecting...</div>

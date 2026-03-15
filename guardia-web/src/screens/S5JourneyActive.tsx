@@ -912,6 +912,9 @@ export default function S5JourneyActive() {
               borderRadius: 12,
               border: "none",
               cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               background:
                 companionStatus === "connected"
                   ? "#10b981"
@@ -920,15 +923,23 @@ export default function S5JourneyActive() {
               fontWeight: 700,
             }}
           >
-            🛡️ AI Call
+            <svg width="16" height="16" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6, flexShrink: 0 }}>
+              <path d="M16 2 L28 7 L28 16 C28 22.5 22.5 27.5 16 30 C9.5 27.5 4 22.5 4 16 L4 7 Z" fill="currentColor" fillOpacity="0.9"/>
+              <path d="M11 16 L14.5 19.5 L21 13" stroke="white" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            AI Call
           </button>
 
           <button
             className="btn-ghost-teal"
-            style={{ height: 48, fontSize: 13, borderRadius: 12 }}
+            style={{ height: 48, fontSize: 13, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center" }}
             onClick={goHome}
           >
-            ✅ Safe
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: 6, flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="1.8"/>
+              <path d="M7.5 12 L10.5 15 L16.5 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            Safe
           </button>
 
           <button
